@@ -44,8 +44,6 @@ func streamSSE(c *gin.Context, s sseSubscription) error {
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
-	c.Header("Access-Control-Allow-Origin", "*")
-	c.Header("Access-Control-Allow-Headers", "Cache-Control")
 
 	write := func(v any) {
 		_, _ = c.Writer.WriteString("data: " + string(pkg.MustToJSON(v)) + "\n\n")
