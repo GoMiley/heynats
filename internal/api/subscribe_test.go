@@ -161,3 +161,21 @@ func TestSubscribeClientDisconnect(t *testing.T) {
 		})
 	}
 }
+
+func TestSubscribeSendsNoCORSHeaders(t *testing.T) {
+	srv := natstest.Start(t)
+	base := newSubscribeServer(t, natstest.Connect(t, srv))
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, base+"/subscribe/messages/test.cors", nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if v := resp.Header.Get("Access-Control-Allow-Origin"); v != "" {
+		t.Fatalf("Access-Control-Allow-Origin = %q, want none", v)
+	}
+}

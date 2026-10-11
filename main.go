@@ -22,7 +22,10 @@ import (
 //go:embed all:client/dist
 var clientDist embed.FS
 
-const shutdownTimeout = 15 * time.Second
+const (
+	shutdownTimeout = 15 * time.Second
+	maxBodyBytes    = 8 << 20
+)
 
 func main() {
 	cfg, err := config.Load(os.Args[1:], os.Getenv)
@@ -78,7 +81,7 @@ func newRouter(dist fs.FS, natsConnections *api.NatsConnectionStore) http.Handle
 	router := infrastructure.NewRouter(dist)
 	middleware := api.NewConnectionMiddleware(natsConnections)
 
-	apiGroup := router.Group("/api")
+	apiGroup := router.Group("/api", api.RejectCrossSite(), api.LimitBody(maxBodyBytes))
 	api.NewHealth(apiGroup).RegisterRoutes()
 
 	natsAPIGroup := apiGroup.Group("/nats")
