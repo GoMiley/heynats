@@ -398,11 +398,15 @@ _Interested in becoming a maintainer? Contribute regularly and reach out to us!_
 
 ## 👨‍💻 Credentials
 
-```
-# Credentials
-- **Username**: admin
-- **Password**: Lm2KZ22PCKB9GjwUYzxnXAm9IyDM8svZZUSp7tSOYcQ=
-```
+Dev server from `docker-compose up` (`nats.conf`). All users share one password: `Lm2KZ22PCKB9GjwUYzxnXAm9IyDM8svZZUSp7tSOYcQ=`
+
+| User | Account | Use |
+|---|---|---|
+| `admin` | APP | JetStream: streams, KV |
+| `sys` | SYS (system account) | server monitoring (`$SYS`) |
+| `mukezhz` | USER | only `logs.>` |
+
+Upgrading from an older `nats.conf`: streams made there belonged to SYS and no longer show up. Run `rm -rf nats_data` to clear them.
 
 ## 🙏 Acknowledgments
 
