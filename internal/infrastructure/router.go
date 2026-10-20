@@ -1,10 +1,11 @@
 package infrastructure
 
 import (
-	"bytes"
 	"encoding/json"
 	"io/fs"
+	"log/slog"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -81,7 +82,19 @@ func indexWithConfig(dist fs.FS, ui UIConfig) []byte {
 	if err != nil {
 		return []byte("<!doctype html><title>HeyNATS</title><p>The client is not built.</p>")
 	}
+	loc := headTag.FindIndex(raw)
+	if loc == nil {
+		// Fail loudly: without the injection, assets and API miss the base path.
+		slog.Error("index.html has no <head> tag; cannot inject the base path")
+		return []byte("<!doctype html><title>HeyNATS</title><p>The client build has no &lt;head&gt;.</p>")
+	}
 	cfg, _ := json.Marshal(ui)
-	head := []byte(`<head><base href="` + ui.BasePath + `/"><script>window.__HEYNATS__=` + string(cfg) + `</script>`)
-	return bytes.Replace(raw, []byte("<head>"), head, 1)
+	inject := []byte(`<base href="` + ui.BasePath + `/"><script>window.__HEYNATS__=` + string(cfg) + `</script>`)
+	out := make([]byte, 0, len(raw)+len(inject))
+	out = append(out, raw[:loc[1]]...)
+	out = append(out, inject...)
+	return append(out, raw[loc[1]:]...)
 }
+
+// headTag matches the opening <head> tag, attributes and any case included.
+var headTag = regexp.MustCompile(`(?i)<head(\s[^>]*)?>`)

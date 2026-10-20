@@ -20,40 +20,40 @@ export function ConsumersTable({ consumers }: ConsumersTableProps) {
       <table className="w-full text-sm">
         <thead className="border-b bg-muted/50 text-xs text-muted-foreground">
           <tr>
-            <th scope="col" className="px-4 py-2.5 text-left font-medium">
+            <th scope="col" className="px-3 py-2.5 text-left font-medium">
               Reader
             </th>
             <th
               scope="col"
-              className="hidden px-4 py-2.5 text-left font-medium lg:table-cell"
+              className="hidden px-3 py-2.5 text-left font-medium 2xl:table-cell"
             >
               Reads
             </th>
             <th
               scope="col"
-              className="px-4 py-2.5 text-right font-medium"
+              className="px-3 py-2.5 text-right font-medium"
               title="Events not delivered yet"
             >
               Pending
             </th>
             <th
               scope="col"
-              className="px-4 py-2.5 text-right font-medium"
+              className="px-3 py-2.5 text-right font-medium"
               title="Delivered, not acknowledged yet"
             >
               Ack pending
             </th>
             <th
               scope="col"
-              className="px-4 py-2.5 text-right font-medium"
+              className="px-3 py-2.5 text-right font-medium"
               title="Events delivered more than once"
             >
               Redelivered
             </th>
-            <th scope="col" className="px-4 py-2.5 text-right font-medium">
+            <th scope="col" className="px-3 py-2.5 text-right font-medium">
               Last delivered
             </th>
-            <th scope="col" className="px-4 py-2.5 text-right font-medium">
+            <th scope="col" className="px-3 py-2.5 text-right font-medium">
               Last ack
             </th>
           </tr>
@@ -68,7 +68,7 @@ export function ConsumersTable({ consumers }: ConsumersTableProps) {
             const behind = c.num_pending + c.num_ack_pending > 0;
             return (
               <tr key={c.name} className="transition-colors hover:bg-muted/50">
-                <td className="px-4 py-2.5">
+                <td className="px-3 py-2.5">
                   <div className="font-medium text-foreground">{c.name}</div>
                   <div className="text-xs text-muted-foreground">
                     {[
@@ -81,12 +81,12 @@ export function ConsumersTable({ consumers }: ConsumersTableProps) {
                       .join(' · ')}
                   </div>
                 </td>
-                <td className="hidden px-4 py-2.5 font-mono text-xs text-muted-foreground lg:table-cell">
+                <td className="hidden px-3 py-2.5 font-mono text-xs text-muted-foreground 2xl:table-cell">
                   {filters.join(', ')}
                 </td>
                 <td
                   className={cn(
-                    'px-4 py-2.5 text-right tabular-nums',
+                    'px-3 py-2.5 text-right tabular-nums',
                     c.num_pending > 0 && 'font-semibold text-warning'
                   )}
                 >
@@ -94,7 +94,7 @@ export function ConsumersTable({ consumers }: ConsumersTableProps) {
                 </td>
                 <td
                   className={cn(
-                    'px-4 py-2.5 text-right tabular-nums',
+                    'px-3 py-2.5 text-right tabular-nums',
                     c.num_ack_pending > 0 && 'font-semibold text-warning'
                   )}
                 >
@@ -102,18 +102,18 @@ export function ConsumersTable({ consumers }: ConsumersTableProps) {
                 </td>
                 <td
                   className={cn(
-                    'px-4 py-2.5 text-right tabular-nums',
+                    'px-3 py-2.5 text-right tabular-nums',
                     c.num_redelivered > 0 && 'font-semibold text-destructive'
                   )}
                 >
                   {num(c.num_redelivered)}
                 </td>
-                <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
+                <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">
                   {formatAgo(c.delivered?.last_active)}
                 </td>
                 <td
                   className={cn(
-                    'px-4 py-2.5 text-right tabular-nums',
+                    'px-3 py-2.5 text-right tabular-nums',
                     behind ? 'text-foreground' : 'text-muted-foreground'
                   )}
                 >

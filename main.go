@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -62,7 +63,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	slog.Info("starting server", "addr", ln.Addr().String(), "base_path", cfg.BasePath, "read_only", cfg.ReadOnly, "nats", cfg.NatsServers)
+	slog.Info("starting server", "addr", ln.Addr().String(), "base_path", cfg.BasePath, "read_only", cfg.ReadOnly, "nats", redactedURLs(cfg.NatsServers))
 	if err := serve(ctx, srv, ln); err != nil {
 		slog.Error("server stopped with error", "err", err)
 	}
@@ -81,6 +82,19 @@ func setupLogging(cfg config.Config) {
 	if cfg.LogLevel > slog.LevelDebug {
 		gin.SetMode(gin.ReleaseMode)
 	}
+}
+
+// redactedURLs hides any password a server URL carries (nats://u:p@host), for logs.
+func redactedURLs(servers []string) []string {
+	out := make([]string, len(servers))
+	for i, s := range servers {
+		if u, err := url.Parse(s); err == nil {
+			out[i] = u.Redacted()
+		} else {
+			out[i] = "(unparsable URL)"
+		}
+	}
+	return out
 }
 
 func newRouter(dist fs.FS, cfg config.Config, natsConnections *api.NatsConnectionStore) http.Handler {

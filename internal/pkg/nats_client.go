@@ -150,7 +150,7 @@ func (nc *NATSCredential) Connect() error {
 			log.Printf("NATS connection disconnected: %v", err)
 		}),
 		nats.ReconnectHandler(func(conn *nats.Conn) {
-			log.Printf("NATS connection reconnected to %s", conn.ConnectedUrl())
+			log.Printf("NATS connection reconnected to %s", conn.ConnectedUrlRedacted())
 		}),
 		nats.ClosedHandler(func(conn *nats.Conn) {
 			log.Printf("NATS connection closed")
@@ -212,7 +212,7 @@ func (nc *NATSCredential) GetInfo() (*NATSInfo, error) {
 	serverInfo := map[string]interface{}{
 		"server_id":     nc.Conn.ConnectedServerId(),
 		"server_name":   nc.Conn.ConnectedServerName(),
-		"connected_url": nc.Conn.ConnectedUrl(),
+		"connected_url": nc.Conn.ConnectedUrlRedacted(),
 		"last_error":    nc.Conn.LastError(),
 	}
 
@@ -220,7 +220,7 @@ func (nc *NATSCredential) GetInfo() (*NATSInfo, error) {
 		ServerInfo:   serverInfo,
 		Stats:        stats,
 		IsConnected:  nc.Conn.IsConnected(),
-		ConnectedURL: nc.Conn.ConnectedUrl(),
+		ConnectedURL: nc.Conn.ConnectedUrlRedacted(),
 	}
 
 	return info, nil
@@ -372,7 +372,7 @@ func (nc *NATSCredential) infoAction() map[string]any {
 		"rtt":              rtt.String(),
 		"header_supported": nc.Conn.HeadersSupported(),
 		"max_payload":      humanize.IBytes(uint64(nc.Conn.MaxPayload())),
-		"connected_url":    nc.Conn.ConnectedUrl(),
+		"connected_url":    nc.Conn.ConnectedUrlRedacted(),
 		"connected_addr":   nc.Conn.ConnectedAddr(),
 		"server_id":        nc.Conn.ConnectedServerId(),
 		"server_version":   nc.Conn.ConnectedServerVersion(),

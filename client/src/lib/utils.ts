@@ -91,7 +91,10 @@ export function formatRTT(rtt: string): string {
 export function formatNanosDuration(nanos: number | undefined | null): string {
   if (!nanos) return 'No limit';
   let seconds = Math.round(nanos / 1e9);
-  if (seconds === 0) return `${Math.round(nanos / 1e6)}ms`;
+  if (seconds === 0) {
+    const ms = Math.round(nanos / 1e6);
+    return ms === 0 ? '<1ms' : `${ms}ms`;
+  }
   const units: Array<[string, number]> = [
     ['d', 86400],
     ['h', 3600],

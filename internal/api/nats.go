@@ -157,7 +157,7 @@ func (e *HeyNats) RegisterRoutes() {
 
 			if connected {
 				status["server_name"] = conn.Conn.ConnectedServerName()
-				status["url"] = conn.Conn.ConnectedUrl()
+				status["url"] = conn.Conn.ConnectedUrlRedacted()
 				status["username"] = conn.Username
 			}
 		}
