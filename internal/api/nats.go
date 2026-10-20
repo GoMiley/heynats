@@ -1,13 +1,11 @@
 package api
 
 import (
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/astergaze-solutions/heynats/internal/pkg"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type HeyNats struct {
@@ -31,52 +29,9 @@ func NewHeyNats(
 func (e *HeyNats) RegisterRoutes() {
 	// NATS connection endpoints
 	api := e.router
-	api.POST("/connect", func(c *gin.Context) {
-		var req pkg.ConnectionRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		oldID, _ := c.Cookie(ConnectionIDKey)
-		if config, ok := e.conns.GetConfig(oldID); ok && *config == req {
-			log.Println("Using existing connection for user:", oldID)
-			e.conns.UpdateActivity(oldID)
-			c.JSON(http.StatusOK, gin.H{
-				"message":   "Successfully connected to NATS server",
-				"connected": true,
-			})
-			return
-		}
-
-		natsConn := pkg.NewNATSCredential(&req)
-		if err := natsConn.Connect(); err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error":   "Failed to connect to NATS server",
-				"details": err.Error(),
-			})
-			return
-		}
-
-		if err := natsConn.TestConnection(); err != nil {
-			natsConn.Disconnect()
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error":   "Connection test failed",
-				"details": err.Error(),
-			})
-			return
-		}
-
-		e.conns.RemoveConnection(oldID)
-		connectionID := uuid.New().String()
-		e.conns.AddConnection(connectionID, natsConn, &req)
-		setSessionCookie(c, connectionID, 3600*24)
-
-		c.JSON(http.StatusOK, gin.H{
-			"message":   "Successfully connected to NATS server",
-			"connected": true,
-		})
-	})
+	// No connect, test or disconnect endpoints: the server's one connection
+	// comes from its environment, and the browser can never choose a host or
+	// credentials.
 
 	api.GET("/info", e.middleware.RequireConnection(), func(c *gin.Context) {
 		natsConn, exists := c.Get(NatsConnectionKey)
@@ -188,46 +143,6 @@ func (e *HeyNats) RegisterRoutes() {
 		c.JSON(http.StatusOK, accountInfo)
 	})
 
-	// Dial with the given credentials, then close; no session is stored.
-	api.POST("/test", func(c *gin.Context) {
-		var req pkg.ConnectionRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		conn := pkg.NewNATSCredential(&req)
-		if err := conn.Connect(); err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Connection failed", "details": err.Error()})
-			return
-		}
-		defer conn.Disconnect()
-		if err := conn.TestConnection(); err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Connection test failed", "details": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"ok":          true,
-			"server_name": conn.Conn.ConnectedServerName(),
-			"version":     conn.Conn.ConnectedServerVersion(),
-		})
-	})
-
-	api.POST("/disconnect", e.middleware.RequireConnection(), func(c *gin.Context) {
-		connectionID, exists := c.Get(ConnectionIDKey)
-		if exists {
-			if cID, ok := connectionID.(string); ok {
-				e.conns.RemoveConnection(cID)
-				// Clear the cookie
-				setSessionCookie(c, "", -1)
-			}
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"message":   "Disconnected from NATS server",
-			"connected": false,
-		})
-	})
-
 	api.GET("/status", e.middleware.Handle(), func(c *gin.Context) {
 		natsConn, exists := c.Get(NatsConnectionKey)
 		connected := false
@@ -241,8 +156,8 @@ func (e *HeyNats) RegisterRoutes() {
 			status["connected"] = connected
 
 			if connected {
-				status["host"] = conn.Host
-				status["port"] = conn.Port
+				status["server_name"] = conn.Conn.ConnectedServerName()
+				status["url"] = conn.Conn.ConnectedUrl()
 				status["username"] = conn.Username
 			}
 		}

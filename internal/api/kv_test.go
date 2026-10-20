@@ -25,7 +25,7 @@ func newKVRouter(t *testing.T) http.Handler {
 	}
 	cred := &pkg.NATSCredential{Conn: nc, JetStream: &js}
 
-	r := infrastructure.NewRouter(fstest.MapFS{})
+	r := infrastructure.NewRouter(fstest.MapFS{}, infrastructure.UIConfig{}, func(c *gin.Context) { c.Next() })
 	g := r.Group("/kv", func(c *gin.Context) { c.Set(NatsConnectionKey, cred) })
 	kv := &KVAPI{}
 	g.POST("/buckets", kv.CreateBucket)

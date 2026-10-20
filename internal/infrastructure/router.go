@@ -1,6 +1,8 @@
 package infrastructure
 
 import (
+	"bytes"
+	"encoding/json"
 	"io/fs"
 	"net/http"
 	"strings"
@@ -12,26 +14,74 @@ type Router struct {
 	*gin.Engine
 }
 
-// NewRouter serves the SPA from dist; unknown non-API paths fall back to index.html.
-func NewRouter(dist fs.FS) *Router {
+// UIConfig is what the browser needs to know about this server, injected
+// into index.html: where the dashboard lives and whether writes are shown.
+type UIConfig struct {
+	BasePath string `json:"basePath"`
+	ReadOnly bool   `json:"readOnly"`
+}
+
+// NewRouter serves the SPA from dist under ui.BasePath; unknown non-API paths
+// fall back to index.html. `guard` (the login) runs on every route except
+// BasePath+"/healthz", which answers "ok" and nothing else, for the load
+// balancer's health check.
+func NewRouter(dist fs.FS, ui UIConfig, guard gin.HandlerFunc) *Router {
 	r := gin.Default()
 	// KV keys may contain "/"; the client sends it as %2F.
 	r.UseRawPath = true
 	r.UnescapePathValues = true
+
+	r.GET(ui.BasePath+"/healthz", func(c *gin.Context) { c.String(http.StatusOK, "ok") })
+	r.Use(guard)
+
+	index := indexWithConfig(dist, ui)
 	fileServer := http.FileServer(http.FS(dist))
 
 	r.NoRoute(func(c *gin.Context) {
 		path := c.Request.URL.Path
-		if strings.HasPrefix(path, "/api") {
+		if ui.BasePath != "" && path != ui.BasePath && !strings.HasPrefix(path, ui.BasePath+"/") {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		rel := strings.TrimPrefix(path, ui.BasePath)
+		if rel == "" {
+			c.Redirect(http.StatusFound, ui.BasePath+"/")
+			return
+		}
+		if strings.HasPrefix(rel, "/api") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "API endpoint not found"})
 			return
 		}
 
-		if _, err := fs.Stat(dist, strings.TrimPrefix(path, "/")); err != nil {
-			c.Request.URL.Path = "/"
+		file := strings.TrimPrefix(rel, "/")
+		if file == "" || file == "index.html" {
+			serveIndex(c, index)
+			return
 		}
+		if _, err := fs.Stat(dist, file); err != nil {
+			serveIndex(c, index)
+			return
+		}
+		c.Request.URL.Path = "/" + file
 		fileServer.ServeHTTP(c.Writer, c.Request)
 	})
 
 	return &Router{r}
+}
+
+func serveIndex(c *gin.Context, index []byte) {
+	c.Header("Cache-Control", "no-store")
+	c.Data(http.StatusOK, "text/html; charset=utf-8", index)
+}
+
+// indexWithConfig adds <base href> (relative assets resolve under the base
+// path, deep links included) and window.__HEYNATS__ to the built index.html.
+func indexWithConfig(dist fs.FS, ui UIConfig) []byte {
+	raw, err := fs.ReadFile(dist, "index.html")
+	if err != nil {
+		return []byte("<!doctype html><title>HeyNATS</title><p>The client is not built.</p>")
+	}
+	cfg, _ := json.Marshal(ui)
+	head := []byte(`<head><base href="` + ui.BasePath + `/"><script>window.__HEYNATS__=` + string(cfg) + `</script>`)
+	return bytes.Replace(raw, []byte("<head>"), head, 1)
 }

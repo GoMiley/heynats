@@ -26,6 +26,11 @@ type NATSCredential struct {
 	Token     string `json:"-"`
 	NKeySeed  string `json:"-"`
 	Creds     string `json:"-"`
+	// Servers, when set, is the fixed server list from the environment; it
+	// wins over Host/Port and the connection keeps retrying until it is up.
+	Servers []string `json:"-"`
+	// SysInfo allows $SYS requests (CONNZ, USER.INFO); off, none are sent.
+	SysInfo bool `json:"-"`
 }
 
 type ConnectionRequest struct {
@@ -36,6 +41,9 @@ type ConnectionRequest struct {
 	Token    string `json:"token"`
 	NKeySeed string `json:"nkeySeed"`
 	Creds    string `json:"creds"` // contents of a .creds file (JWT + NKey seed)
+	// Set only by the server from its environment — never bound from a request.
+	Servers []string `json:"-"`
+	SysInfo bool     `json:"-"`
 }
 
 func NewNATSCredential(req *ConnectionRequest) *NATSCredential {
@@ -47,6 +55,8 @@ func NewNATSCredential(req *ConnectionRequest) *NATSCredential {
 		Token:    req.Token,
 		NKeySeed: req.NKeySeed,
 		Creds:    req.Creds,
+		Servers:  req.Servers,
+		SysInfo:  req.SysInfo,
 	}
 }
 
@@ -111,6 +121,11 @@ func (nc *NATSCredential) Connect() error {
 
 	// Build connection URL
 	url := fmt.Sprintf("nats://%s:%s", nc.Host, nc.Port)
+	if len(nc.Servers) > 0 {
+		url = strings.Join(nc.Servers, ",")
+		// The server starts even while NATS is down, and keeps trying.
+		opts = append(opts, nats.RetryOnFailedConnect(true))
+	}
 
 	// Add authentication if provided
 	auth, err := nc.authOption()
@@ -216,10 +231,13 @@ func (nc *NATSCredential) GetAccountInfo() (*AccountInfo, error) {
 		return nil, fmt.Errorf("not connected to NATS server")
 	}
 
-	// Request account info using NATS request-reply pattern
-	// This is a simplified version - in a real implementation you might need
-	// to use the NATS system account or have proper permissions
-	resp, err := nc.Conn.Request("$SYS.REQ.ACCOUNT.PING.CONNZ", nil, 2*time.Second)
+	// $SYS requests only when allowed: a user without $SYS permissions makes
+	// the server log an error for every one of them.
+	var resp *nats.Msg
+	err := fmt.Errorf("$SYS requests are off")
+	if nc.SysInfo {
+		resp, err = nc.Conn.Request("$SYS.REQ.ACCOUNT.PING.CONNZ", nil, 2*time.Second)
+	}
 	if err != nil {
 		// If system requests are not available, return basic info
 		return &AccountInfo{
@@ -296,7 +314,7 @@ func (nc *NATSCredential) infoAction() map[string]any {
 
 	// Simplified user info without server dependency
 	var userInfo map[string]interface{}
-	if util.ServerMinVersion(nc.Conn, 2, 10, 0) {
+	if nc.SysInfo && util.ServerMinVersion(nc.Conn, 2, 10, 0) {
 		subj := "$SYS.REQ.USER.INFO"
 		resp, err := nc.Conn.Request(subj, nil, time.Second)
 		if err == nil {
