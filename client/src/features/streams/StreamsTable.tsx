@@ -23,7 +23,8 @@ const sortValue: Record<SortKey, (s: Stream) => string | number> = {
 interface StreamsTableProps {
   streams: Stream[];
   onBrowse: (name: string) => void;
-  onDelete: (name: string) => void;
+  /** Absent on a read-only dashboard: no delete button. */
+  onDelete?: (name: string) => void;
 }
 
 export function StreamsTable({
@@ -175,16 +176,18 @@ export function StreamsTable({
                     >
                       <Inbox />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Delete ${name}`}
-                      title="Delete stream"
-                      onClick={() => onDelete(name)}
-                      className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <Trash2 />
-                    </Button>
+                    {onDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Delete ${name}`}
+                        title="Delete stream"
+                        onClick={() => onDelete(name)}
+                        className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 />
+                      </Button>
+                    )}
                   </div>
                 </td>
               </tr>

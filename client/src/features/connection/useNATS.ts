@@ -1,11 +1,5 @@
-import {
-  type QueryClient,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
-import { type ConnectionCredentials, natsApi } from '@/lib/api';
-import { showErrorToast, showSuccessToast } from '@/lib/error-utils';
+import { useQuery } from '@tanstack/react-query';
+import { natsApi } from '@/lib/api';
 
 // Query keys
 export const queryKeys = {
@@ -49,70 +43,5 @@ export function useAccountInfo(enabled = true) {
     staleTime: 2000,
     refetchInterval: 5000,
     retry: 1,
-  });
-}
-
-// Streams/KV/etc. belong to the previous server; drop them when the connection changes.
-const dropServerData = (queryClient: QueryClient) =>
-  queryClient.removeQueries({
-    predicate: (query) => query.queryKey[0] !== queryKeys.nats.all[0],
-  });
-
-// Connection mutation
-export function useConnectToNATS() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (credentials: ConnectionCredentials) =>
-      natsApi.connect(credentials),
-    onSuccess: () => {
-      dropServerData(queryClient);
-      // Invalidate and refetch connection status
-      queryClient.invalidateQueries({ queryKey: queryKeys.nats.status() });
-      // Invalidate other NATS queries to trigger refetch when enabled
-      queryClient.invalidateQueries({ queryKey: queryKeys.nats.all });
-      showSuccessToast(
-        'Connected to NATS server successfully!',
-        'All NATS features are now available'
-      );
-    },
-    // Errors are shown inline in the login form.
-  });
-}
-
-// Disconnect mutation
-export function useDisconnectFromNATS() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: natsApi.disconnect,
-    onSuccess: () => {
-      // Update connection status immediately
-      queryClient.setQueryData(queryKeys.nats.status(), {
-        connected: false,
-        userInitiated: true,
-      });
-      dropServerData(queryClient);
-      // Invalidate all NATS-related queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.nats.all });
-      showSuccessToast(
-        'Disconnected from NATS server',
-        'Connection closed successfully'
-      );
-    },
-    onError: (error) => {
-      console.error('Disconnect failed:', error);
-      showErrorToast(
-        'disconnect from NATS server',
-        error,
-        'Failed to disconnect from NATS server'
-      );
-      // Even if disconnect API fails, update local state
-      queryClient.setQueryData(queryKeys.nats.status(), {
-        connected: false,
-        userInitiated: true,
-      });
-      dropServerData(queryClient);
-    },
   });
 }

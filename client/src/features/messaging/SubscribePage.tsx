@@ -2,6 +2,7 @@ import { Radio } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState, PageIntro } from '@/components/PageStates';
+import { apiUrl } from '@/lib/config';
 import { appendCapped, useEventSources } from '@/lib/useEventSources';
 import { type SubscribeFn, SubscribeForm } from './SubscribeForm';
 import { SubscriptionsPanel } from './SubscriptionsPanel';
@@ -54,7 +55,9 @@ export function SubscribePage() {
     }
 
     // Build URL with query parameters
-    let url = `/api/nats/subscribe/messages/${encodeURIComponent(subscriptionSubject)}`;
+    let url = apiUrl(
+      `/nats/subscribe/messages/${encodeURIComponent(subscriptionSubject)}`
+    );
     const params = new URLSearchParams();
     if (subscriptionQueueGroup) {
       params.append('queue_group', subscriptionQueueGroup);

@@ -5,6 +5,7 @@ import { showErrorToast, showSuccessToast } from '@/lib/error-utils';
 export const streamKeys = {
   all: ['streams'] as const,
   detail: (name: string) => [...streamKeys.all, 'detail', name] as const,
+  consumers: (name: string) => [...streamKeys.all, 'consumers', name] as const,
   messages: (name: string, page: number, limit: number, search: string) =>
     [...streamKeys.all, 'messages', name, page, limit, search] as const,
 };
@@ -22,6 +23,16 @@ export function useStream(name: string | undefined) {
     queryKey: streamKeys.detail(name ?? ''),
     queryFn: () => streamsApi.getStream(name!),
     enabled: !!name,
+  });
+}
+
+/** A stream's readers, refreshed every 5 s so their backlog stays live. */
+export function useStreamConsumers(name: string | undefined) {
+  return useQuery({
+    queryKey: streamKeys.consumers(name ?? ''),
+    queryFn: () => streamsApi.getConsumers(name!),
+    enabled: !!name,
+    refetchInterval: 5000,
   });
 }
 

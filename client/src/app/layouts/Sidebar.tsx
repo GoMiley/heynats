@@ -15,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { serverConfig } from '@/lib/config';
 
 interface NavItemProps {
   name: string;
@@ -79,12 +80,17 @@ const Sidebar = () => {
       icon: <Database className="h-5 w-5" />,
       exact: false,
     },
-    {
-      name: 'Publish',
-      path: '/dashboard/publish',
-      icon: <Send className="h-5 w-5" />,
-      exact: true,
-    },
+    // Publishing is a write: not on a read-only dashboard.
+    ...(serverConfig.readOnly
+      ? []
+      : [
+          {
+            name: 'Publish',
+            path: '/dashboard/publish',
+            icon: <Send className="h-5 w-5" />,
+            exact: true,
+          },
+        ]),
     {
       name: 'Subscribe',
       path: '/dashboard/subscribe',

@@ -15,6 +15,7 @@ import { StatsCard } from '@/components/StatsCard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useConnectionStatus } from '@/features/connection/useNATS';
+import { serverConfig } from '@/lib/config';
 import { formatBytes, formatTTL } from '@/lib/utils';
 import { KVKeysTab } from './KVKeysTab';
 import { useDeleteKVBucket, useKVBucket, useKVBucketKeys } from './useKV';
@@ -89,26 +90,28 @@ export function KVBucketDetailPage() {
         <PageIntro
           description="Key-value bucket"
           actions={
-            <>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsAddingKey(true);
-                  setActiveTab('keys');
-                }}
-              >
-                <Plus />
-                Add key
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setConfirmDeleteBucket(true)}
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-              >
-                <Trash2 />
-                Delete bucket
-              </Button>
-            </>
+            !serverConfig.readOnly && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsAddingKey(true);
+                    setActiveTab('keys');
+                  }}
+                >
+                  <Plus />
+                  Add key
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmDeleteBucket(true)}
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 />
+                  Delete bucket
+                </Button>
+              </>
+            )
           }
         />
 

@@ -4,6 +4,9 @@ import path from "path";
 import { defineConfig } from "vite";
 
 export default defineConfig({
+  // Relative asset URLs: the server injects <base href="BASE_PATH/"> into
+  // index.html, so the same build serves at / or under any prefix (e.g. /nats).
+  base: './',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

@@ -1,18 +1,10 @@
 // API client functions for NATS operations
-export interface ConnectionCredentials {
-  host: string;
-  port: string;
-  username: string;
-  password: string;
-  token?: string;
-  nkeySeed?: string;
-  creds?: string;
-}
+import { apiUrl } from './config';
 
 export interface ConnectionStatus {
   connected: boolean;
-  host?: string;
-  port?: string;
+  server_name?: string;
+  url?: string;
   username?: string;
 }
 
@@ -90,8 +82,6 @@ export interface AccountInfo {
   stats: ConnectionLimits; // Same structure as connection_limits
 }
 
-const API_BASE = '/api';
-
 class ApiError extends Error {
   constructor(
     message: string,
@@ -107,7 +97,7 @@ async function apiRequest<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {
-  const response = await fetch(`${API_BASE}${endpoint}`, {
+  const response = await fetch(apiUrl(endpoint), {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -133,30 +123,6 @@ async function apiRequest<T>(
 export const natsApi = {
   // Check connection status
   getStatus: (): Promise<ConnectionStatus> => apiRequest('/nats/status'),
-
-  // Connect to NATS server
-  connect: (
-    credentials: ConnectionCredentials
-  ): Promise<{ message: string; connected: boolean }> =>
-    apiRequest('/nats/connect', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    }),
-
-  // Try credentials without creating a session
-  test: (
-    credentials: ConnectionCredentials
-  ): Promise<{ ok: boolean; server_name: string; version: string }> =>
-    apiRequest('/nats/test', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    }),
-
-  // Disconnect from NATS server
-  disconnect: (): Promise<{ message: string; connected: boolean }> =>
-    apiRequest('/nats/disconnect', {
-      method: 'POST',
-    }),
 
   // Get NATS server info
   getInfo: (): Promise<NATSInfo> => apiRequest('/nats/info'),
@@ -232,9 +198,38 @@ export interface StreamMessagesResponse {
 }
 
 // Streams API functions
+/** One durable consumer (a stream's reader), as JetStream's CONSUMER.INFO reports it. */
+export interface ConsumerInfo {
+  stream_name: string;
+  name: string;
+  created: string;
+  config: {
+    durable_name?: string;
+    deliver_policy?: string;
+    ack_policy?: string;
+    filter_subject?: string;
+    filter_subjects?: string[];
+    max_deliver?: number;
+    max_ack_pending?: number;
+  };
+  delivered: { consumer_seq: number; stream_seq: number; last_active?: string };
+  ack_floor: { consumer_seq: number; stream_seq: number; last_active?: string };
+  num_ack_pending: number;
+  num_redelivered: number;
+  num_waiting: number;
+  num_pending: number;
+  paused?: boolean;
+}
+
 export const streamsApi = {
   // Get all streams
   getStreams: (): Promise<StreamsResponse> => apiRequest('/nats/streams'),
+
+  // A stream's durable consumers with their backlog (CONSUMER.INFO)
+  getConsumers: (
+    streamName: string
+  ): Promise<{ consumers: ConsumerInfo[]; total: number }> =>
+    apiRequest(`/nats/streams/consumers/${encodeURIComponent(streamName)}`),
 
   // Get stream details
   getStream: (streamName: string): Promise<Stream> =>

@@ -14,6 +14,7 @@ import { StatsCard } from '@/components/StatsCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { StreamConfig } from '@/lib/api';
+import { serverConfig } from '@/lib/config';
 import { useSearchQuery } from '@/lib/useSearchQuery';
 import { cn } from '@/lib/utils';
 import { CreateStreamModal } from './CreateStreamModal';
@@ -59,7 +60,8 @@ export function StreamsPage() {
     }
   };
 
-  const createButton = (
+  // Creating is a write: not on a read-only dashboard.
+  const createButton = serverConfig.readOnly ? null : (
     <Button onClick={() => setIsCreateModalOpen(true)}>
       <Plus />
       Create stream
@@ -156,7 +158,7 @@ export function StreamsPage() {
             <StreamsTable
               streams={filteredStreams}
               onBrowse={setBrowsing}
-              onDelete={setStreamToDelete}
+              onDelete={serverConfig.readOnly ? undefined : setStreamToDelete}
             />
           ) : (
             <EmptyState

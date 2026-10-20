@@ -4,13 +4,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { EmptyState, LoadingState } from '@/components/PageStates';
 import { StatsCard } from '@/components/StatsCard';
 import { Button } from '@/components/ui/button';
+import { apiUrl } from '@/lib/config';
 import { appendCapped, useEventSources } from '@/lib/useEventSources';
-import { formatBytes } from '@/lib/utils';
+import { formatBytes, formatNanosDuration } from '@/lib/utils';
+import { ConsumersTable } from './ConsumersTable';
 import { LiveMessageDialog } from './LiveMessageDialog';
 import { LiveMessagesPanel } from './LiveMessagesPanel';
 import { SubjectList } from './SubjectList';
 import type { MessageEvent, SubjectSubscription } from './types';
-import { useStream } from './useStreams';
+import { useStream, useStreamConsumers } from './useStreams';
 
 export function StreamDetailPage() {
   const { streamName } = useParams<{ streamName: string }>();
@@ -32,6 +34,7 @@ export function StreamDetailPage() {
 
   // Fetch stream details
   const { data: stream, isLoading, error } = useStream(streamName);
+  const { data: consumers } = useStreamConsumers(streamName);
 
   // Get subjects and active messages for virtualization (must be called before any early returns)
   const subjects = stream?.config?.subjects || [];
@@ -56,7 +59,9 @@ export function StreamDetailPage() {
   const startSubscription = (subject: string) => {
     if (subscriptions[subject]?.isActive) return;
 
-    const url = `/api/nats/streams/${encodeURIComponent(streamName ?? '')}/subjects/${encodeURIComponent(subject)}/subscribe`;
+    const url = apiUrl(
+      `/nats/streams/${encodeURIComponent(streamName ?? '')}/subjects/${encodeURIComponent(subject)}/subscribe`
+    );
     openSource(subject, url, {
       onOpen: () =>
         setSubscriptions((prev) => ({
@@ -277,11 +282,26 @@ export function StreamDetailPage() {
               </div>
               <div>
                 <span className="font-medium">Max Age:</span>{' '}
-                {stream.config?.max_age
-                  ? `${stream.config.max_age}s`
-                  : 'No limit'}
+                {formatNanosDuration(stream.config?.max_age)}
               </div>
             </div>
+          </div>
+
+          {/* Readers: each durable consumer and its backlog */}
+          <div className="mb-4 shrink-0">
+            <h2 className="text-base font-semibold mb-3">
+              Readers{' '}
+              <span className="text-sm font-normal text-muted-foreground">
+                ({consumers?.total ?? 0})
+              </span>
+            </h2>
+            {consumers && consumers.consumers.length > 0 ? (
+              <ConsumersTable consumers={consumers.consumers} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No readers on this stream.
+              </p>
+            )}
           </div>
 
           <SubjectList

@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { KVEntry } from '@/lib/api';
+import { serverConfig } from '@/lib/config';
 import { useDeleteKVKey, useSetKVKey } from './useKV';
 
 interface KVKeysTabProps {
@@ -306,7 +307,7 @@ export function KVKeysTab({
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    {editingKey === entry.key ? (
+                    {serverConfig.readOnly ? null : editingKey === entry.key ? (
                       <>
                         <Button
                           size="sm"
