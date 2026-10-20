@@ -4,8 +4,14 @@ services:
     container_name: heynats_app
     ports:
       - "5000:5000"
+    # Credentials come from your shell or a local .env (never committed).
     environment:
-      - NATS_URL=nats://nats:4222
+      - NATS_SERVERS=nats://nats:4222
+      - NATS_USER=${NATS_USER:-admin}
+      - NATS_PASSWORD=${NATS_PASSWORD:?set NATS_PASSWORD}
+      - DASHBOARD_USER=${DASHBOARD_USER:?set DASHBOARD_USER}
+      - DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD:?set DASHBOARD_PASSWORD}
+      - READONLY=${READONLY:-true}
     depends_on:
       - nats
   nats:

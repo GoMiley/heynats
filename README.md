@@ -1,3 +1,35 @@
+# HeyNATS — GoMiley fork
+
+A fork of [mukezhz/heynats](https://github.com/mukezhz/heynats) (MIT, see [LICENSE.md](LICENSE.md) — all credit for HeyNATS to its authors), hardened to run as a shared, read-only dashboard over one NATS cluster:
+
+- **One fixed NATS.** The server connects only to `NATS_SERVERS` with `NATS_USER` / `NATS_PASSWORD` from its environment. There is no connect form; the browser never picks a host or credentials, and nothing is saved in the browser.
+- **Login on every route.** HTTP basic auth (`DASHBOARD_USER` / `DASHBOARD_PASSWORD`) on pages, assets and API. Only `<BASE_PATH>/healthz` is open, for load-balancer health checks.
+- **Base path.** `BASE_PATH=/nats` serves the UI, its assets and the API under `/nats`.
+- **Read-only by default.** `READONLY=true` (the default) hides publish, create, edit, delete and purge, and the server refuses every non-GET API call with 403. Set `READONLY=false` to allow writes.
+- **Quiet.** No `$SYS` polling (CONNZ, USER.INFO) unless `SYS_INFO=true`, so a user without `$SYS` permissions does not make NATS log an error every few seconds.
+- **Readers per stream.** A stream's page lists its durable consumers with pending, ack pending, redelivered, and last delivered / last ack, refreshed every 5 s.
+- **Max Age** reads in days / hours / minutes.
+
+### Settings
+
+| Variable | Required | Default | Meaning |
+| --- | --- | --- | --- |
+| `NATS_SERVERS` | yes | | Comma-separated NATS URLs |
+| `NATS_USER`, `NATS_PASSWORD` | | | NATS credentials |
+| `DASHBOARD_USER`, `DASHBOARD_PASSWORD` | yes | | Login for the dashboard |
+| `BASE_PATH` | | (root) | Path prefix, e.g. `/nats` |
+| `READONLY` | | `true` | `false` allows writes |
+| `SYS_INFO` | | `false` | `true` queries `$SYS` for connection and user info |
+| `HEYNATS_HTTP_ADDR` | | `:5000` | Listen address |
+
+A read-only NATS user needs only JetStream's read API: publish on `$JS.API.INFO`, `$JS.API.STREAM.INFO.*`, `$JS.API.STREAM.NAMES`, `$JS.API.STREAM.LIST`, `$JS.API.STREAM.MSG.GET.*`, `$JS.API.DIRECT.GET.>`, `$JS.API.CONSUMER.INFO.*.*`, `$JS.API.CONSUMER.NAMES.*`, `$JS.API.CONSUMER.LIST.*`, and subscribe on `_INBOX.>`. (Listing a KV bucket's keys creates a short-lived consumer, so it fails for such a user.)
+
+### Image
+
+`ghcr.io/gomiley/heynats`, linux/amd64 + linux/arm64, built by [`.github/workflows/release.yml`](.github/workflows/release.yml) on every push to `develop` (tags `sha-<commit>`, `develop`) and on `v*` tags. Deploy by the digest the workflow prints, never by tag.
+
+---
+
 # HeyNATS 🚀
 
 <div align="center">
