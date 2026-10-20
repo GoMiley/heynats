@@ -26,7 +26,7 @@ A read-only NATS user needs only JetStream's read API: publish on `$JS.API.INFO`
 
 ### Image
 
-`ghcr.io/gomiley/heynats`, linux/amd64 + linux/arm64, built by [`.github/workflows/release.yml`](.github/workflows/release.yml) on every push to `develop` (tags `sha-<commit>`, `develop`) and on `v*` tags. Deploy by the digest the workflow prints, never by tag.
+This repository builds and publishes nothing. Miley's image is built from a pinned commit of this repository by a workflow in `GoMiley/miley-platform` and pushed to Miley's Amazon ECR; deploy it by digest, never by tag. To build one locally: `docker build -t heynats .`
 
 ---
 
