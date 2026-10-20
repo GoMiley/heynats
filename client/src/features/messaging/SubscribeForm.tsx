@@ -94,7 +94,9 @@ export function SubscribeForm({ subscribe }: { subscribe: SubscribeFn }) {
         <TabsList
           className={`grid w-full ${serverConfig.readOnly ? 'grid-cols-2' : 'grid-cols-3'}`}
         >
-          <TabsTrigger value="regular">Regular/Queue</TabsTrigger>
+          <TabsTrigger value="regular">
+            {serverConfig.readOnly ? 'Regular' : 'Regular/Queue'}
+          </TabsTrigger>
           <TabsTrigger value="reply">Reply Subject</TabsTrigger>
           {!serverConfig.readOnly && (
             <TabsTrigger value="request-handler">Request Handler</TabsTrigger>
@@ -103,7 +105,9 @@ export function SubscribeForm({ subscribe }: { subscribe: SubscribeFn }) {
 
         {/* Regular/Queue Subscription Tab */}
         <TabsContent value="regular" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div
+            className={`grid grid-cols-1 gap-4 items-end ${serverConfig.readOnly ? 'md:grid-cols-3' : 'md:grid-cols-4'}`}
+          >
             <div>
               <label
                 htmlFor="sub-subject"
@@ -121,21 +125,24 @@ export function SubscribeForm({ subscribe }: { subscribe: SubscribeFn }) {
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="sub-queue-group"
-                className="block text-sm font-medium text-foreground/80 mb-1"
-              >
-                Queue Group
-              </label>
-              <Input
-                id="sub-queue-group"
-                value={queueGroup}
-                onChange={(e) => setQueueGroup(e.target.value)}
-                placeholder="optional"
-                className="w-full"
-              />
-            </div>
+            {/* A queue group would divert deliveries from a real subscriber. */}
+            {!serverConfig.readOnly && (
+              <div>
+                <label
+                  htmlFor="sub-queue-group"
+                  className="block text-sm font-medium text-foreground/80 mb-1"
+                >
+                  Queue Group
+                </label>
+                <Input
+                  id="sub-queue-group"
+                  value={queueGroup}
+                  onChange={(e) => setQueueGroup(e.target.value)}
+                  placeholder="optional"
+                  className="w-full"
+                />
+              </div>
+            )}
 
             <div>
               <label

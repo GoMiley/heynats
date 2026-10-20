@@ -39,6 +39,7 @@ func newDashboard(t *testing.T, readOnly bool) (http.Handler, string) {
 	NewHeyNats(n, store, mw).RegisterRoutes()
 	NewStreamAPI(n, store, mw).RegisterRoutes()
 	NewPublishAPI(n, store, mw).RegisterRoutes()
+	NewSubscribeAPI(n, store, mw).RegisterRoutes()
 	return r, srv.ClientURL()
 }
 
@@ -112,6 +113,8 @@ func TestReadOnlyRefusesWritesButServesReads(t *testing.T) {
 		{http.MethodPost, "/nats/api/nats/publish/message", `{"subject":"order.1.2.created","data":"x"}`},
 		{http.MethodPost, "/nats/api/nats/streams", `{"name":"X","subjects":["x.>"]}`},
 		{http.MethodDelete, "/nats/api/nats/streams/ORDER_EVENTS", ""},
+		// A queue group would divert deliveries from a real subscriber.
+		{http.MethodGet, "/nats/api/nats/subscribe/messages/order.%3E?queue_group=workers", ""},
 	}
 	for _, wr := range writes {
 		w := call(r, wr.method, wr.path, true, wr.body)
