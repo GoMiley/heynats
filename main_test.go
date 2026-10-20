@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 )
@@ -40,5 +41,12 @@ func TestServeStopsWithOpenStream(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("shutdown waited on the open stream")
+	}
+}
+
+func TestRedactedURLsHidePasswords(t *testing.T) {
+	got := redactedURLs([]string{"nats://dashboard:secret@nats-a:4222", "nats://nats-b:4222"})
+	if strings.Contains(strings.Join(got, " "), "secret") || got[1] != "nats://nats-b:4222" {
+		t.Errorf("redactedURLs = %v", got)
 	}
 }

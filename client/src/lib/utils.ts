@@ -83,3 +83,45 @@ export function formatRTT(rtt: string): string {
   if (ms < 1000) return `${ms.toFixed(1)}ms`;
   return `${(ms / 1000).toFixed(2)}s`;
 }
+
+/**
+ * A Go time.Duration as NATS sends it (nanoseconds) in plain units:
+ * 604800000000000 → "7d", 90000000000 → "1m 30s". 0 or absent → "No limit".
+ */
+export function formatNanosDuration(nanos: number | undefined | null): string {
+  if (!nanos) return 'No limit';
+  let seconds = Math.round(nanos / 1e9);
+  if (seconds === 0) {
+    const ms = Math.round(nanos / 1e6);
+    return ms === 0 ? '<1ms' : `${ms}ms`;
+  }
+  const units: Array<[string, number]> = [
+    ['d', 86400],
+    ['h', 3600],
+    ['m', 60],
+    ['s', 1],
+  ];
+  const parts: string[] = [];
+  for (const [label, size] of units) {
+    if (seconds >= size) {
+      parts.push(`${Math.floor(seconds / size)}${label}`);
+      seconds %= size;
+    }
+  }
+  return parts.join(' ');
+}
+
+/** "12s ago", "3m ago", "2h ago", "4d ago" — or "never" for an absent time. */
+export function formatAgo(
+  iso: string | undefined | null,
+  now = Date.now()
+): string {
+  if (!iso) return 'never';
+  const t = Date.parse(iso);
+  if (Number.isNaN(t) || t <= 0) return 'never';
+  const s = Math.max(0, Math.round((now - t) / 1000));
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}

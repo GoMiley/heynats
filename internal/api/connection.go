@@ -21,6 +21,9 @@ type ConnectionStoreConfig struct {
 }
 
 type NatsConnectionStore struct {
+	// fixedID, when set, is the one connection every request uses: the server
+	// dials the environment's NATS at startup and the browser picks nothing.
+	fixedID       string
 	nastsConns    map[string]*ConnectionInfo
 	mutex         sync.RWMutex
 	idleTimeout   time.Duration
@@ -52,6 +55,28 @@ func NewNatsConnectionWithConfig(config ConnectionStoreConfig) *NatsConnectionSt
 	log.Printf("Connection store initialized with idle timeout: %v, check interval: %v",
 		config.IdleTimeout, config.CheckInterval)
 
+	return store
+}
+
+// FixedConnectionID names the server's one connection in fixed mode.
+const FixedConnectionID = "server"
+
+// NewFixedNatsConnection dials the given NATS once, at startup, and serves
+// every request from that connection. It never idles out; nats.go reconnects
+// on its own, and a closed connection is redialed from the same settings.
+func NewFixedNatsConnection(req *pkg.ConnectionRequest) *NatsConnectionStore {
+	ctx, cancel := context.WithCancel(context.Background())
+	store := &NatsConnectionStore{
+		fixedID:    FixedConnectionID,
+		nastsConns: make(map[string]*ConnectionInfo),
+		ctx:        ctx,
+		cancel:     cancel,
+	}
+	conn := pkg.NewNATSCredential(req)
+	if err := conn.Connect(); err != nil {
+		log.Printf("NATS connect failed (retrying on demand): %v", err)
+	}
+	store.AddConnection(FixedConnectionID, conn, req)
 	return store
 }
 
@@ -131,6 +156,11 @@ func (n *NatsConnectionStore) GetOrReconnect(id string) (*pkg.NATSCredential, bo
 	}
 
 	if err != nil {
+		if id == n.fixedID {
+			// The server's own connection is never dropped: the next request redials.
+			closeConn(newConn)
+			return nil, true, err
+		}
 		closeConn(old)
 		delete(n.nastsConns, id)
 		return nil, false, err

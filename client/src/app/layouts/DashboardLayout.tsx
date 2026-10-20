@@ -1,21 +1,18 @@
 import { ChevronRight } from 'lucide-react';
 import { useEffect } from 'react';
-import { Link, Outlet, useMatches, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useMatches } from 'react-router-dom';
 import type { RouteHandle } from '@/app/router';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { Button } from '@/components/ui/button';
 import {
   useAccountInfo,
   useConnectionStatus,
-  useDisconnectFromNATS,
 } from '@/features/connection/useNATS';
+import { serverConfig } from '@/lib/config';
 import { Sidebar } from './Sidebar';
 
 export function DashboardLayout() {
-  const navigate = useNavigate();
   const { data: status } = useConnectionStatus();
   const { data: accountInfo } = useAccountInfo(status?.connected);
-  const disconnectMutation = useDisconnectFromNATS();
 
   const match = [...useMatches()].reverse().find((m) => m.handle) as
     | { handle: RouteHandle; params: Record<string, string | undefined> }
@@ -29,16 +26,6 @@ export function DashboardLayout() {
   useEffect(() => {
     document.title = `${title} · HeyNATS`;
   }, [title]);
-
-  const handleDisconnect = async () => {
-    try {
-      await disconnectMutation.mutateAsync();
-      navigate('/', { replace: true });
-    } catch (error) {
-      console.error('Disconnect failed:', error);
-      navigate('/', { replace: true });
-    }
-  };
 
   return (
     <div className="h-screen bg-background flex overflow-hidden">
@@ -67,7 +54,7 @@ export function DashboardLayout() {
               </h1>
               <p className="truncate text-xs text-muted-foreground mt-0.5">
                 {[
-                  status?.host && `${status.host}:${status.port}`,
+                  status?.server_name && `server ${status.server_name}`,
                   status?.username && `user ${status.username}`,
                   accountInfo?.account_information?.account &&
                     `account ${accountInfo.account_information.account}`,
@@ -77,18 +64,12 @@ export function DashboardLayout() {
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              {serverConfig.readOnly && (
+                <span className="rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                  Read-only
+                </span>
+              )}
               <ThemeToggle />
-              <Button
-                onClick={handleDisconnect}
-                variant="outline"
-                size="sm"
-                disabled={disconnectMutation.isPending}
-                className="border-destructive/30 text-destructive hover:bg-destructive/5"
-              >
-                {disconnectMutation.isPending
-                  ? 'Disconnecting...'
-                  : 'Disconnect'}
-              </Button>
             </div>
           </div>
         </header>

@@ -14,6 +14,7 @@ import { StatsCard } from '@/components/StatsCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { CreateBucketRequest } from '@/lib/api';
+import { serverConfig } from '@/lib/config';
 import { useSearchQuery } from '@/lib/useSearchQuery';
 import { cn, formatBytes } from '@/lib/utils';
 import { BucketsTable } from './BucketsTable';
@@ -45,7 +46,8 @@ export function KeyValuePage() {
       onSuccess: () => setIsCreateModalOpen(false),
     });
 
-  const createButton = (
+  // Creating is a write: not on a read-only dashboard.
+  const createButton = serverConfig.readOnly ? null : (
     <Button onClick={() => setIsCreateModalOpen(true)}>
       <Plus />
       Create bucket

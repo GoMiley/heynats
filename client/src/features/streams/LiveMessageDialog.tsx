@@ -1,3 +1,4 @@
+import { formatJSON } from '@/components/JsonViewer';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import type { MessageEvent } from './types';
@@ -57,7 +58,7 @@ export function LiveMessageDialog({
               <div className="bg-muted text-foreground p-3 rounded-lg overflow-x-auto">
                 <pre className="text-sm font-mono whitespace-pre-wrap">
                   {typeof message.data === 'string'
-                    ? message.data
+                    ? formatJSON(message.data)
                     : JSON.stringify(message.data, null, 2)}
                 </pre>
               </div>

@@ -2,6 +2,7 @@ import { Radio } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EmptyState, PageIntro } from '@/components/PageStates';
+import { apiUrl, serverConfig } from '@/lib/config';
 import { appendCapped, useEventSources } from '@/lib/useEventSources';
 import { type SubscribeFn, SubscribeForm } from './SubscribeForm';
 import { SubscriptionsPanel } from './SubscriptionsPanel';
@@ -54,7 +55,9 @@ export function SubscribePage() {
     }
 
     // Build URL with query parameters
-    let url = `/api/nats/subscribe/messages/${encodeURIComponent(subscriptionSubject)}`;
+    let url = apiUrl(
+      `/nats/subscribe/messages/${encodeURIComponent(subscriptionSubject)}`
+    );
     const params = new URLSearchParams();
     if (subscriptionQueueGroup) {
       params.append('queue_group', subscriptionQueueGroup);
@@ -208,15 +211,17 @@ export function SubscribePage() {
                     — every message on the subject
                   </span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <TypeIcon type="queue" />
-                  <span>
-                    <span className="font-medium text-foreground">
-                      Queue group
-                    </span>{' '}
-                    — load-balanced across members
-                  </span>
-                </li>
+                {!serverConfig.readOnly && (
+                  <li className="flex items-center gap-2">
+                    <TypeIcon type="queue" />
+                    <span>
+                      <span className="font-medium text-foreground">
+                        Queue group
+                      </span>{' '}
+                      — load-balanced across members
+                    </span>
+                  </li>
+                )}
                 <li className="flex items-center gap-2">
                   <TypeIcon type="reply" />
                   <span>
@@ -226,15 +231,17 @@ export function SubscribePage() {
                     — watch replies to requests
                   </span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <TypeIcon type="request-handler" />
-                  <span>
-                    <span className="font-medium text-foreground">
-                      Request handler
-                    </span>{' '}
-                    — answer requests, optionally automatically
-                  </span>
-                </li>
+                {!serverConfig.readOnly && (
+                  <li className="flex items-center gap-2">
+                    <TypeIcon type="request-handler" />
+                    <span>
+                      <span className="font-medium text-foreground">
+                        Request handler
+                      </span>{' '}
+                      — answer requests, optionally automatically
+                    </span>
+                  </li>
+                )}
               </ul>
             </>
           }

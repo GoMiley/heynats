@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,6 +17,7 @@ import (
 	"github.com/astergaze-solutions/heynats/internal/api"
 	"github.com/astergaze-solutions/heynats/internal/config"
 	"github.com/astergaze-solutions/heynats/internal/infrastructure"
+	"github.com/astergaze-solutions/heynats/internal/pkg"
 	"github.com/gin-gonic/gin"
 )
 
@@ -41,9 +43,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	natsConnections := api.NewNatsConnection()
+	natsConnections := api.NewFixedNatsConnection(&pkg.ConnectionRequest{
+		Servers:  cfg.NatsServers,
+		Username: cfg.NatsUser,
+		Password: cfg.NatsPassword,
+		SysInfo:  cfg.SysInfo,
+	})
 	srv := &http.Server{
-		Handler:           newRouter(dist, natsConnections),
+		Handler:           newRouter(dist, cfg, natsConnections),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
@@ -56,7 +63,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	slog.Info("starting server", "addr", ln.Addr().String())
+	slog.Info("starting server", "addr", ln.Addr().String(), "base_path", cfg.BasePath, "read_only", cfg.ReadOnly, "nats", redactedURLs(cfg.NatsServers))
 	if err := serve(ctx, srv, ln); err != nil {
 		slog.Error("server stopped with error", "err", err)
 	}
@@ -77,11 +84,30 @@ func setupLogging(cfg config.Config) {
 	}
 }
 
-func newRouter(dist fs.FS, natsConnections *api.NatsConnectionStore) http.Handler {
-	router := infrastructure.NewRouter(dist)
+// redactedURLs hides any password a server URL carries (nats://u:p@host), for logs.
+func redactedURLs(servers []string) []string {
+	out := make([]string, len(servers))
+	for i, s := range servers {
+		if u, err := url.Parse(s); err == nil {
+			out[i] = u.Redacted()
+		} else {
+			out[i] = "(unparsable URL)"
+		}
+	}
+	return out
+}
+
+func newRouter(dist fs.FS, cfg config.Config, natsConnections *api.NatsConnectionStore) http.Handler {
+	router := infrastructure.NewRouter(dist, infrastructure.UIConfig{
+		BasePath: cfg.BasePath,
+		ReadOnly: cfg.ReadOnly,
+	}, api.BasicAuth(cfg.DashboardUser, cfg.DashboardPassword))
 	middleware := api.NewConnectionMiddleware(natsConnections)
 
-	apiGroup := router.Group("/api", api.RejectCrossSite(), api.LimitBody(maxBodyBytes))
+	apiGroup := router.Group(cfg.BasePath+"/api", api.RejectCrossSite(), api.LimitBody(maxBodyBytes))
+	if cfg.ReadOnly {
+		apiGroup.Use(api.RefuseWrites())
+	}
 	api.NewHealth(apiGroup).RegisterRoutes()
 
 	natsAPIGroup := apiGroup.Group("/nats")

@@ -1,8 +1,8 @@
-import { createBrowserRouter, type Params } from 'react-router-dom';
+import { createBrowserRouter, Navigate, type Params } from 'react-router-dom';
 import { DashboardLayout } from '@/app/layouts/DashboardLayout';
 import { RootLayout } from '@/app/layouts/RootLayout';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { LoginPage } from '@/features/connection/LoginPage';
+import { serverConfig } from '@/lib/config';
 import { ProtectedRoute } from './ProtectedRoute';
 
 /** Read by DashboardLayout to render the header title and breadcrumb. */
@@ -19,84 +19,97 @@ const page = <K extends string>(
   lazy: async () => ({ Component: (await load())[name] }),
 });
 
-export const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <RootLayout />,
-    errorElement: <ErrorBoundary />,
-    children: [
-      { index: true, element: <LoginPage /> },
-      {
-        path: 'dashboard',
-        element: (
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        ),
-        children: [
-          {
-            index: true,
-            handle: { title: 'Dashboard' } satisfies RouteHandle,
-            ...page(
-              () => import('@/features/dashboard/DashboardPage'),
-              'DashboardPage'
-            ),
-          },
-          {
-            path: 'streams',
-            handle: { title: 'Streams' } satisfies RouteHandle,
-            ...page(
-              () => import('@/features/streams/StreamsPage'),
-              'StreamsPage'
-            ),
-          },
-          {
-            path: 'streams/:streamName',
-            handle: {
-              title: (p) => p.streamName ?? '',
-              parent: { label: 'Streams', to: '/dashboard/streams' },
-            } satisfies RouteHandle,
-            ...page(
-              () => import('@/features/streams/StreamDetailPage'),
-              'StreamDetailPage'
-            ),
-          },
-          {
-            path: 'kv',
-            handle: { title: 'Key-Value Store' } satisfies RouteHandle,
-            ...page(() => import('@/features/kv/KeyValuePage'), 'KeyValuePage'),
-          },
-          {
-            path: 'kv/:bucketName',
-            handle: {
-              title: (p) => p.bucketName ?? '',
-              parent: { label: 'Key-Value Store', to: '/dashboard/kv' },
-            } satisfies RouteHandle,
-            ...page(
-              () => import('@/features/kv/KVBucketDetailPage'),
-              'KVBucketDetailPage'
-            ),
-          },
-          {
-            path: 'publish',
-            handle: { title: 'Publish' } satisfies RouteHandle,
-            ...page(
-              () => import('@/features/messaging/PublishPage'),
-              'PublishPage'
-            ),
-          },
-          {
-            path: 'subscribe',
-            handle: { title: 'Subscribe' } satisfies RouteHandle,
-            ...page(
-              () => import('@/features/messaging/SubscribePage'),
-              'SubscribePage'
-            ),
-          },
-        ],
-      },
-    ],
-  },
-]);
+export const router = createBrowserRouter(
+  [
+    {
+      path: '/',
+      element: <RootLayout />,
+      errorElement: <ErrorBoundary />,
+      children: [
+        // No login form: the server is connected to its one NATS already.
+        { index: true, element: <Navigate to="/dashboard" replace /> },
+        {
+          path: 'dashboard',
+          element: (
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          ),
+          children: [
+            {
+              index: true,
+              handle: { title: 'Dashboard' } satisfies RouteHandle,
+              ...page(
+                () => import('@/features/dashboard/DashboardPage'),
+                'DashboardPage'
+              ),
+            },
+            {
+              path: 'streams',
+              handle: { title: 'Streams' } satisfies RouteHandle,
+              ...page(
+                () => import('@/features/streams/StreamsPage'),
+                'StreamsPage'
+              ),
+            },
+            {
+              path: 'streams/:streamName',
+              handle: {
+                title: (p) => p.streamName ?? '',
+                parent: { label: 'Streams', to: '/dashboard/streams' },
+              } satisfies RouteHandle,
+              ...page(
+                () => import('@/features/streams/StreamDetailPage'),
+                'StreamDetailPage'
+              ),
+            },
+            {
+              path: 'kv',
+              handle: { title: 'Key-Value Store' } satisfies RouteHandle,
+              ...page(
+                () => import('@/features/kv/KeyValuePage'),
+                'KeyValuePage'
+              ),
+            },
+            {
+              path: 'kv/:bucketName',
+              handle: {
+                title: (p) => p.bucketName ?? '',
+                parent: { label: 'Key-Value Store', to: '/dashboard/kv' },
+              } satisfies RouteHandle,
+              ...page(
+                () => import('@/features/kv/KVBucketDetailPage'),
+                'KVBucketDetailPage'
+              ),
+            },
+            ...(serverConfig.readOnly
+              ? []
+              : [
+                  {
+                    path: 'publish',
+                    handle: { title: 'Publish' } satisfies RouteHandle,
+                    ...page(
+                      () => import('@/features/messaging/PublishPage'),
+                      'PublishPage'
+                    ),
+                  },
+                ]),
+            // Unknown pages — and Publish on a read-only server — land on the dashboard.
+            { path: '*', element: <Navigate to="/dashboard" replace /> },
+            {
+              path: 'subscribe',
+              handle: { title: 'Subscribe' } satisfies RouteHandle,
+              ...page(
+                () => import('@/features/messaging/SubscribePage'),
+                'SubscribePage'
+              ),
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  { basename: serverConfig.basePath || '/' }
+);
 
 export default router;

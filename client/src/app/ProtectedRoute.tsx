@@ -1,5 +1,4 @@
 import { type ReactNode, useEffect, useRef } from 'react';
-import { Navigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useConnectionStatus } from '@/features/connection/useNATS';
 
@@ -11,20 +10,16 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { data: status, isLoading } = useConnectionStatus();
   const wasConnected = useRef(false);
   const connected = !!status?.connected;
-  // Set by useDisconnectFromNATS so a deliberate disconnect isn't reported as a loss.
-  const userInitiated = !!(status as { userInitiated?: boolean } | undefined)
-    ?.userInitiated;
 
   useEffect(() => {
     if (connected) {
       wasConnected.current = true;
-    } else if (wasConnected.current && !userInitiated) {
+    } else if (wasConnected.current) {
       toast.error('Connection to NATS lost', {
-        description:
-          'The server closed the session. Connect again to continue.',
+        description: 'The dashboard keeps trying to reconnect.',
       });
     }
-  }, [connected, userInitiated]);
+  }, [connected]);
 
   // Show loading state while checking connection
   if (isLoading) {
@@ -35,9 +30,19 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  // Redirect to login if not connected
+  // The server dials its one NATS by itself; there is nothing to log in to.
   if (!connected) {
-    return <Navigate to="/" replace />;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-2 p-6 text-center">
+        <p className="text-lg font-semibold text-foreground">
+          NATS is not reachable
+        </p>
+        <p className="text-sm text-muted-foreground">
+          The dashboard server keeps trying to connect; this page refreshes on
+          its own.
+        </p>
+      </div>
+    );
   }
 
   return <>{children}</>;

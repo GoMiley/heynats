@@ -10,10 +10,18 @@ func NewConnectionMiddleware(conns *NatsConnectionStore) *ConnectionMiddleware {
 	return &ConnectionMiddleware{conns: conns}
 }
 
+// connectionID is the fixed connection in fixed mode, else the session cookie.
+func (m *ConnectionMiddleware) connectionID(c *gin.Context) (string, error) {
+	if m.conns.fixedID != "" {
+		return m.conns.fixedID, nil
+	}
+	return c.Cookie(ConnectionIDKey)
+}
+
 // Handle returns middleware that optionally loads connection from cookie
 func (m *ConnectionMiddleware) Handle() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		cID, err := c.Cookie(ConnectionIDKey)
+		cID, err := m.connectionID(c)
 		if err == nil && cID != "" {
 			// If a cookie exists, try to find the corresponding connection
 			// This will automatically reconnect if the connection is dead
@@ -34,7 +42,7 @@ func (m *ConnectionMiddleware) Handle() gin.HandlerFunc {
 // RequireConnection returns middleware that requires a valid connection
 func (m *ConnectionMiddleware) RequireConnection() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		cID, err := c.Cookie(ConnectionIDKey)
+		cID, err := m.connectionID(c)
 		if err != nil {
 			c.JSON(401, gin.H{"error": "Connection ID cookie is missing"})
 			c.Abort()
