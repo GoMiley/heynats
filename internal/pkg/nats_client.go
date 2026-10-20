@@ -239,7 +239,8 @@ func (nc *NATSCredential) GetAccountInfo() (*AccountInfo, error) {
 		resp, err = nc.Conn.Request("$SYS.REQ.ACCOUNT.PING.CONNZ", nil, 2*time.Second)
 	}
 	if err != nil {
-		// If system requests are not available, return basic info
+		// If system requests are not available, return basic info plus the
+		// account's JetStream usage ($JS.API.INFO needs no $SYS rights).
 		return &AccountInfo{
 			AccountInformation: nc.infoAction(),
 			ConnectionLimits: map[string]interface{}{
@@ -250,6 +251,7 @@ func (nc *NATSCredential) GetAccountInfo() (*AccountInfo, error) {
 				"connections":   "N/A",
 				"subscriptions": "N/A",
 			},
+			JetStreamInfo: nc.jetStreamUsage(),
 		}, nil
 	}
 
@@ -276,6 +278,24 @@ func (nc *NATSCredential) GetAccountInfo() (*AccountInfo, error) {
 			"reconnects": stats.Reconnects,
 		},
 	}, nil
+}
+
+// jetStreamUsage reads the account's JetStream usage; nil when JetStream is
+// unavailable or the user may not ask.
+func (nc *NATSCredential) jetStreamUsage() *JSAccountInfo {
+	if nc.JSConn == nil {
+		return nil
+	}
+	info, err := (*nc.JSConn).AccountInfo()
+	if err != nil {
+		return nil
+	}
+	return &JSAccountInfo{
+		Memory:    info.Memory,
+		Store:     info.Store,
+		Streams:   info.Streams,
+		Consumers: info.Consumers,
+	}
 }
 
 // accountPingData returns the "data" object of a $SYS reply; error replies have none.
@@ -332,6 +352,9 @@ func (nc *NATSCredential) infoAction() map[string]any {
 	var userID, account interface{}
 	var expires interface{}
 	var permissions interface{}
+	if nc.Username != "" {
+		userID = nc.Username
+	}
 	if userInfo != nil {
 		userID = userInfo["user_id"]
 		account = userInfo["account"]

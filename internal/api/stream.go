@@ -209,7 +209,7 @@ func (e *StreamAPI) SubscribeToStreamSubject(c *gin.Context) {
 		},
 		event: func(msg *nats.Msg) map[string]any {
 			return map[string]any{
-				"subject":   subject,
+				"subject":   msg.Subject,
 				"data":      string(msg.Data),
 				"timestamp": pkg.GetCurrentTimestamp(),
 				"headers":   firstHeaderValues(msg.Header),

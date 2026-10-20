@@ -76,10 +76,19 @@ export interface ConnectionLimits {
   total: number;
 }
 
+export interface JetStreamUsage {
+  memory: number;
+  store: number;
+  streams: number;
+  consumers: number;
+}
+
 export interface AccountInfo {
   account_information: AccountInformation;
+  // Connection details need $SYS; without it these hold "N/A" placeholders.
   connection_limits: ConnectionLimits;
   stats: ConnectionLimits; // Same structure as connection_limits
+  jetstream_info?: JetStreamUsage;
 }
 
 class ApiError extends Error {

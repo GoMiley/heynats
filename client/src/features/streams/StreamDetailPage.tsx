@@ -14,6 +14,11 @@ import { SubjectList } from './SubjectList';
 import type { MessageEvent, SubjectSubscription } from './types';
 import { useStream, useStreamConsumers } from './useStreams';
 
+// A stream limit of -1 (or unset) means none.
+function limit(value: number | undefined, format: (n: number) => string) {
+  return value === undefined || value < 0 ? 'Unlimited' : format(value);
+}
+
 export function StreamDetailPage() {
   const { streamName } = useParams<{ streamName: string }>();
   const navigate = useNavigate();
@@ -274,11 +279,11 @@ export function StreamDetailPage() {
               </div>
               <div>
                 <span className="font-medium">Max Messages:</span>{' '}
-                {(stream.config?.max_msgs || 0).toLocaleString()}
+                {limit(stream.config?.max_msgs, (n) => n.toLocaleString())}
               </div>
               <div>
                 <span className="font-medium">Max Bytes:</span>{' '}
-                {((stream.config?.max_bytes || 0) / 1024 / 1024).toFixed(2)} MB
+                {limit(stream.config?.max_bytes, formatBytes)}
               </div>
               <div>
                 <span className="font-medium">Max Age:</span>{' '}

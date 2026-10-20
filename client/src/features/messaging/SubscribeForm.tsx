@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { subscribeApi } from '@/lib/api';
+import { serverConfig } from '@/lib/config';
 import type { SubscriptionType } from './types';
 
 export type SubscribeFn = (
@@ -89,10 +90,15 @@ export function SubscribeForm({ subscribe }: { subscribe: SubscribeFn }) {
   return (
     <div className="bg-card rounded-lg border border-border p-4 mb-4">
       <Tabs defaultValue="regular" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        {/* A request handler replies (publishes), so read-only hides it. */}
+        <TabsList
+          className={`grid w-full ${serverConfig.readOnly ? 'grid-cols-2' : 'grid-cols-3'}`}
+        >
           <TabsTrigger value="regular">Regular/Queue</TabsTrigger>
           <TabsTrigger value="reply">Reply Subject</TabsTrigger>
-          <TabsTrigger value="request-handler">Request Handler</TabsTrigger>
+          {!serverConfig.readOnly && (
+            <TabsTrigger value="request-handler">Request Handler</TabsTrigger>
+          )}
         </TabsList>
 
         {/* Regular/Queue Subscription Tab */}
@@ -230,98 +236,100 @@ export function SubscribeForm({ subscribe }: { subscribe: SubscribeFn }) {
         </TabsContent>
 
         {/* Request Handler Tab */}
-        <TabsContent value="request-handler" className="space-y-4">
-          <div className="space-y-4">
-            <div className="bg-success/5 border border-success/30 rounded-md p-3">
-              <p className="text-sm text-success">
-                Subscribe to handle incoming requests and optionally send
-                automatic replies. Perfect for creating service endpoints and
-                API handlers.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label
-                  htmlFor="sub-request-subject"
-                  className="block text-sm font-medium text-foreground/80 mb-1"
-                >
-                  Request Subject *
-                </label>
-                <AutocompleteInput
-                  id="sub-request-subject"
-                  value={requestSubject}
-                  onChange={setRequestSubject}
-                  placeholder="e.g., api.*, service.orders.*"
-                  suggestions={subjectsData?.subjects || []}
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="sub-queue-group-2"
-                  className="block text-sm font-medium text-foreground/80 mb-1"
-                >
-                  Queue Group
-                </label>
-                <Input
-                  id="sub-queue-group-2"
-                  value={requestQueueGroup}
-                  onChange={(e) => setRequestQueueGroup(e.target.value)}
-                  placeholder="load balancing group"
-                  className="w-full"
-                />
-              </div>
-
-              <div className="flex items-end">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={autoReply}
-                    onChange={(e) => setAutoReply(e.target.checked)}
-                    className="rounded border-border"
-                  />
-                  <span className="text-sm font-medium text-foreground/80">
-                    Auto Reply
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            {autoReply && (
-              <div>
-                <label
-                  htmlFor="sub-reply-template-json"
-                  className="block text-sm font-medium text-foreground/80 mb-1"
-                >
-                  Reply Template (JSON)
-                </label>
-                <Textarea
-                  id="sub-reply-template-json"
-                  value={replyTemplate}
-                  onChange={(e) => setReplyTemplate(e.target.value)}
-                  placeholder='{"status": "received", "timestamp": "${timestamp}"}'
-                  className="min-h-[80px] font-mono text-sm"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Use ${'{timestamp}'} for current time, ${'{subject}'} for
-                  request subject, ${'{data}'} for request data
+        {!serverConfig.readOnly && (
+          <TabsContent value="request-handler" className="space-y-4">
+            <div className="space-y-4">
+              <div className="bg-success/5 border border-success/30 rounded-md p-3">
+                <p className="text-sm text-success">
+                  Subscribe to handle incoming requests and optionally send
+                  automatic replies. Perfect for creating service endpoints and
+                  API handlers.
                 </p>
               </div>
-            )}
 
-            <div className="flex gap-2">
-              <Button
-                onClick={handleRequestHandlerSubscribe}
-                disabled={!requestSubject.trim()}
-                className="flex-1"
-              >
-                Start Request Handler
-              </Button>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label
+                    htmlFor="sub-request-subject"
+                    className="block text-sm font-medium text-foreground/80 mb-1"
+                  >
+                    Request Subject *
+                  </label>
+                  <AutocompleteInput
+                    id="sub-request-subject"
+                    value={requestSubject}
+                    onChange={setRequestSubject}
+                    placeholder="e.g., api.*, service.orders.*"
+                    suggestions={subjectsData?.subjects || []}
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="sub-queue-group-2"
+                    className="block text-sm font-medium text-foreground/80 mb-1"
+                  >
+                    Queue Group
+                  </label>
+                  <Input
+                    id="sub-queue-group-2"
+                    value={requestQueueGroup}
+                    onChange={(e) => setRequestQueueGroup(e.target.value)}
+                    placeholder="load balancing group"
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="flex items-end">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={autoReply}
+                      onChange={(e) => setAutoReply(e.target.checked)}
+                      className="rounded border-border"
+                    />
+                    <span className="text-sm font-medium text-foreground/80">
+                      Auto Reply
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {autoReply && (
+                <div>
+                  <label
+                    htmlFor="sub-reply-template-json"
+                    className="block text-sm font-medium text-foreground/80 mb-1"
+                  >
+                    Reply Template (JSON)
+                  </label>
+                  <Textarea
+                    id="sub-reply-template-json"
+                    value={replyTemplate}
+                    onChange={(e) => setReplyTemplate(e.target.value)}
+                    placeholder='{"status": "received", "timestamp": "${timestamp}"}'
+                    className="min-h-[80px] font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use ${'{timestamp}'} for current time, ${'{subject}'} for
+                    request subject, ${'{data}'} for request data
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleRequestHandlerSubscribe}
+                  disabled={!requestSubject.trim()}
+                  className="flex-1"
+                >
+                  Start Request Handler
+                </Button>
+              </div>
             </div>
-          </div>
-        </TabsContent>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

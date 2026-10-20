@@ -133,7 +133,7 @@ const Sidebar = () => {
             {small ? (
               <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                 <img
-                  src="/heynats.jpg"
+                  src={`${serverConfig.basePath}/heynats.jpg`}
                   className="w-full h-full object-cover"
                   alt="HeyNATS logo"
                 />
@@ -142,7 +142,7 @@ const Sidebar = () => {
               <div className="flex items-center">
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center overflow-hidden mr-3">
                   <img
-                    src="/heynats.jpg"
+                    src={`${serverConfig.basePath}/heynats.jpg`}
                     className="w-full h-full object-cover"
                     alt="HeyNATS logo"
                   />

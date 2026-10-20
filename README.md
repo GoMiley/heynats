@@ -22,7 +22,7 @@ A fork of [mukezhz/heynats](https://github.com/mukezhz/heynats) (MIT, see [LICEN
 | `SYS_INFO` | | `false` | `true` queries `$SYS` for connection and user info |
 | `HEYNATS_HTTP_ADDR` | | `:5000` | Listen address |
 
-A read-only NATS user needs only JetStream's read API: publish on `$JS.API.INFO`, `$JS.API.STREAM.INFO.*`, `$JS.API.STREAM.NAMES`, `$JS.API.STREAM.LIST`, `$JS.API.STREAM.MSG.GET.*`, `$JS.API.DIRECT.GET.>`, `$JS.API.CONSUMER.INFO.*.*`, `$JS.API.CONSUMER.NAMES.*`, `$JS.API.CONSUMER.LIST.*`, and subscribe on `_INBOX.>`. (Listing a KV bucket's keys creates a short-lived consumer, so it fails for such a user.)
+A read-only NATS user needs only JetStream's read API: publish on `$JS.API.INFO`, `$JS.API.STREAM.INFO.*`, `$JS.API.STREAM.NAMES`, `$JS.API.STREAM.LIST`, `$JS.API.STREAM.MSG.GET.*`, `$JS.API.DIRECT.GET.>`, `$JS.API.CONSUMER.INFO.*.*`, `$JS.API.CONSUMER.NAMES.*`, `$JS.API.CONSUMER.LIST.*`, and subscribe on `_INBOX.>`. To watch a stream's messages live (stream page → Start, or Subscribe), also allow subscribe on that stream's subjects, e.g. `order.>` — still read-only. (Listing a KV bucket's keys creates a short-lived consumer, so it fails for such a user.)
 
 ### Image
 
