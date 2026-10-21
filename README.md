@@ -20,6 +20,7 @@ A fork of [mukezhz/heynats](https://github.com/mukezhz/heynats) (MIT, see [LICEN
 | `BASE_PATH` | | (root) | Path prefix, e.g. `/nats` |
 | `READONLY` | | `true` | `false` allows writes |
 | `SYS_INFO` | | `false` | `true` queries `$SYS` for connection and user info |
+| `LIVE_TAP` | | `true` | `false` turns live watching off (no Start / Subscribe; the subscribe streams answer 404 at once). Set it behind a proxy that buffers streaming responses — e.g. AWS API Gateway HTTP APIs, which hold the stream and answer 503 after 30 s |
 | `HEYNATS_HTTP_ADDR` | | `:5000` | Listen address |
 
 A read-only NATS user needs only JetStream's read API: publish on `$JS.API.INFO`, `$JS.API.STREAM.INFO.*`, `$JS.API.STREAM.NAMES`, `$JS.API.STREAM.LIST`, `$JS.API.STREAM.MSG.GET.*`, `$JS.API.DIRECT.GET.>`, `$JS.API.CONSUMER.INFO.*.*`, `$JS.API.CONSUMER.NAMES.*`, `$JS.API.CONSUMER.LIST.*`, and subscribe on `_INBOX.>`. To watch a stream's messages live (stream page → Start, or Subscribe), also allow subscribe on that stream's subjects, e.g. `order.>` — still read-only. (Listing a KV bucket's keys creates a short-lived consumer, so it fails for such a user.)

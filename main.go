@@ -63,7 +63,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	slog.Info("starting server", "addr", ln.Addr().String(), "base_path", cfg.BasePath, "read_only", cfg.ReadOnly, "nats", redactedURLs(cfg.NatsServers))
+	slog.Info("starting server", "addr", ln.Addr().String(), "base_path", cfg.BasePath, "read_only", cfg.ReadOnly, "live_tap", cfg.LiveTap, "nats", redactedURLs(cfg.NatsServers))
 	if err := serve(ctx, srv, ln); err != nil {
 		slog.Error("server stopped with error", "err", err)
 	}
@@ -101,6 +101,7 @@ func newRouter(dist fs.FS, cfg config.Config, natsConnections *api.NatsConnectio
 	router := infrastructure.NewRouter(dist, infrastructure.UIConfig{
 		BasePath: cfg.BasePath,
 		ReadOnly: cfg.ReadOnly,
+		LiveTap:  cfg.LiveTap,
 	}, api.BasicAuth(cfg.DashboardUser, cfg.DashboardPassword))
 	middleware := api.NewConnectionMiddleware(natsConnections)
 
@@ -113,9 +114,14 @@ func newRouter(dist fs.FS, cfg config.Config, natsConnections *api.NatsConnectio
 	natsAPIGroup := apiGroup.Group("/nats")
 	api.NewHeyNats(natsAPIGroup, natsConnections, middleware).RegisterRoutes()
 	api.NewKVAPI(natsAPIGroup, natsConnections, middleware).RegisterRoutes()
-	api.NewStreamAPI(natsAPIGroup, natsConnections, middleware).RegisterRoutes()
+	streams := api.NewStreamAPI(natsAPIGroup, natsConnections, middleware)
+	streams.NoLiveTap = !cfg.LiveTap
+	streams.RegisterRoutes()
 	api.NewPublishAPI(natsAPIGroup, natsConnections, middleware).RegisterRoutes()
-	api.NewSubscribeAPI(natsAPIGroup, natsConnections, middleware).RegisterRoutes()
+	// Live watching streams responses; behind a buffering proxy it is not registered at all.
+	if cfg.LiveTap {
+		api.NewSubscribeAPI(natsAPIGroup, natsConnections, middleware).RegisterRoutes()
+	}
 	return router
 }
 

@@ -14,6 +14,8 @@ type StreamAPI struct {
 	router     *gin.RouterGroup
 	conns      *NatsConnectionStore
 	middleware *ConnectionMiddleware
+	// NoLiveTap leaves the live subject stream unregistered (LIVE_TAP=false).
+	NoLiveTap bool
 }
 
 func NewStreamAPI(
@@ -34,7 +36,9 @@ func (e *StreamAPI) RegisterRoutes() {
 	api.POST("", e.middleware.RequireConnection(), e.CreateStream)
 	// More specific routes must come before generic :stream routes
 	api.GET("/:stream/messages", e.middleware.RequireConnection(), e.GetStreamMessages)
-	api.GET("/:stream/subjects/:subject/subscribe", e.middleware.RequireConnection(), e.SubscribeToStreamSubject)
+	if !e.NoLiveTap {
+		api.GET("/:stream/subjects/:subject/subscribe", e.middleware.RequireConnection(), e.SubscribeToStreamSubject)
+	}
 	api.GET("/consumers/:stream", e.middleware.RequireConnection(), e.ListConsumers)
 	// Generic routes at the end
 	api.GET("/:stream", e.middleware.RequireConnection(), e.GetStreamInfo)

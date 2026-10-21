@@ -6,6 +6,7 @@
 interface ServerUIConfig {
   basePath: string;
   readOnly: boolean;
+  liveTap: boolean;
 }
 
 const injected =
@@ -15,6 +16,8 @@ const injected =
 export const serverConfig: ServerUIConfig = {
   basePath: injected.basePath ?? '',
   readOnly: injected.readOnly ?? true,
+  // Off behind a proxy that buffers streaming responses: no live watching.
+  liveTap: injected.liveTap ?? true,
 };
 
 /** An absolute URL for an API path, under the base path: apiUrl('/nats/status'). */

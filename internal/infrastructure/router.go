@@ -20,6 +20,7 @@ type Router struct {
 type UIConfig struct {
 	BasePath string `json:"basePath"`
 	ReadOnly bool   `json:"readOnly"`
+	LiveTap  bool   `json:"liveTap"`
 }
 
 // NewRouter serves the SPA from dist under ui.BasePath; unknown non-API paths
