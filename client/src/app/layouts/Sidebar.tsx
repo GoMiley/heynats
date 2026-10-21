@@ -91,12 +91,17 @@ const Sidebar = () => {
             exact: true,
           },
         ]),
-    {
-      name: 'Subscribe',
-      path: '/dashboard/subscribe',
-      icon: <Headphones className="h-5 w-5" />,
-      exact: true,
-    },
+    // Watching subjects live needs streaming responses.
+    ...(serverConfig.liveTap
+      ? [
+          {
+            name: 'Subscribe',
+            path: '/dashboard/subscribe',
+            icon: <Headphones className="h-5 w-5" />,
+            exact: true,
+          },
+        ]
+      : []),
   ];
 
   const bottomNavItems: NavItemProps[] = [];

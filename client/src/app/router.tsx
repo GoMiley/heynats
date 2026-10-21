@@ -96,14 +96,18 @@ export const router = createBrowserRouter(
                 ]),
             // Unknown pages — and Publish on a read-only server — land on the dashboard.
             { path: '*', element: <Navigate to="/dashboard" replace /> },
-            {
-              path: 'subscribe',
-              handle: { title: 'Subscribe' } satisfies RouteHandle,
-              ...page(
-                () => import('@/features/messaging/SubscribePage'),
-                'SubscribePage'
-              ),
-            },
+            ...(serverConfig.liveTap
+              ? [
+                  {
+                    path: 'subscribe',
+                    handle: { title: 'Subscribe' } satisfies RouteHandle,
+                    ...page(
+                      () => import('@/features/messaging/SubscribePage'),
+                      'SubscribePage'
+                    ),
+                  },
+                ]
+              : []),
           ],
         },
       ],

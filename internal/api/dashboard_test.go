@@ -18,7 +18,7 @@ import (
 
 // newDashboard wires the production router the way main.go does: fixed
 // connection, login on every route, base path, read-only.
-func newDashboard(t *testing.T, readOnly bool) (http.Handler, string) {
+func newDashboard(t *testing.T, readOnly bool, liveTapOff ...bool) (http.Handler, string) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
 	srv := natstest.Start(t)
@@ -33,6 +33,9 @@ func newDashboard(t *testing.T, readOnly bool) (http.Handler, string) {
 	g := r.Group("/nats/api", RejectCrossSite())
 	if readOnly {
 		g.Use(RefuseWrites())
+	}
+	if len(liveTapOff) > 0 && liveTapOff[0] {
+		g.Use(RefuseLiveTap())
 	}
 	mw := NewConnectionMiddleware(store)
 	n := g.Group("/nats")
@@ -80,7 +83,7 @@ func TestBasePathServesIndexWithConfigAndAssets(t *testing.T) {
 		t.Fatalf("deep link = %d", w.Code)
 	}
 	html := w.Body.String()
-	if !strings.Contains(html, `<base href="/nats/">`) || !strings.Contains(html, `window.__HEYNATS__={"basePath":"/nats","readOnly":true}`) {
+	if !strings.Contains(html, `<base href="/nats/">`) || !strings.Contains(html, `window.__HEYNATS__={"basePath":"/nats","readOnly":true,"liveTap":false}`) {
 		t.Errorf("index.html lacks the base href or the config: %s", html)
 	}
 	if w := call(r, http.MethodGet, "/nats/assets/app.js", true, ""); w.Code != http.StatusOK || w.Body.String() != "console.log(1)" {
@@ -126,4 +129,19 @@ func TestReadOnlyRefusesWritesButServesReads(t *testing.T) {
 		t.Errorf("list streams = %d, want 200", w.Code)
 	}
 	_, _ = io.Discard.Write(nil)
+}
+
+func TestLiveTapOffRefusesStreamsAtOnceButServesReads(t *testing.T) {
+	r, _ := newDashboard(t, true, true)
+	for _, path := range []string{
+		"/nats/api/nats/subscribe/messages/order.%3E",
+		"/nats/api/nats/streams/ORDER_EVENTS/subjects/order.%3E/subscribe",
+	} {
+		if w := call(r, http.MethodGet, path, true, ""); w.Code != http.StatusNotFound || !strings.Contains(w.Body.String(), "Live watching is turned off") {
+			t.Errorf("GET %s with live tap off = %d %s, want 404 at once", path, w.Code, w.Body.String())
+		}
+	}
+	if w := call(r, http.MethodGet, "/nats/api/nats/streams", true, ""); w.Code != http.StatusOK {
+		t.Errorf("list streams with live tap off = %d, want 200", w.Code)
+	}
 }

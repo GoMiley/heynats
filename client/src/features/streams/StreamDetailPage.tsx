@@ -209,31 +209,35 @@ export function StreamDetailPage() {
     <div className="flex h-full flex-col p-4 sm:p-6">
       <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
         {/* Left Side - Main Content */}
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:w-1/2">
-          <div className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-2">
-            <p className="text-sm text-muted-foreground">
-              Select subjects, then start a live subscription.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                onClick={startSelectedSubscriptions}
-                disabled={selectedSubjects.size === 0}
-                size="sm"
-              >
-                <Play />
-                Start ({selectedSubjects.size})
-              </Button>
-              <Button
-                onClick={stopAllSubscriptions}
-                disabled={!hasActiveSubscriptions}
-                variant="outline"
-                size="sm"
-              >
-                <Square />
-                Stop all
-              </Button>
+        <div
+          className={`flex min-h-0 flex-1 flex-col overflow-hidden ${serverConfig.liveTap ? 'lg:w-1/2' : ''}`}
+        >
+          {serverConfig.liveTap && (
+            <div className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-muted-foreground">
+                Select subjects, then start a live subscription.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  onClick={startSelectedSubscriptions}
+                  disabled={selectedSubjects.size === 0}
+                  size="sm"
+                >
+                  <Play />
+                  Start ({selectedSubjects.size})
+                </Button>
+                <Button
+                  onClick={stopAllSubscriptions}
+                  disabled={!hasActiveSubscriptions}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Square />
+                  Stop all
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Stream Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4 shrink-0">
@@ -309,23 +313,27 @@ export function StreamDetailPage() {
             )}
           </div>
 
-          <SubjectList
-            subjects={subjects}
-            subscriptions={subscriptions}
-            selectedSubjects={selectedSubjects}
-            handleSubjectToggle={handleSubjectToggle}
-            startSubscription={startSubscription}
-            stopSubscription={stopSubscription}
-            exportMessages={exportMessages}
-          />
+          {serverConfig.liveTap && (
+            <SubjectList
+              subjects={subjects}
+              subscriptions={subscriptions}
+              selectedSubjects={selectedSubjects}
+              handleSubjectToggle={handleSubjectToggle}
+              startSubscription={startSubscription}
+              stopSubscription={stopSubscription}
+              exportMessages={exportMessages}
+            />
+          )}
         </div>
 
-        <LiveMessagesPanel
-          subscriptions={subscriptions}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          openMessageModal={openMessageModal}
-        />
+        {serverConfig.liveTap && (
+          <LiveMessagesPanel
+            subscriptions={subscriptions}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            openMessageModal={openMessageModal}
+          />
+        )}
 
         <LiveMessageDialog
           message={selectedMessage}

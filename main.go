@@ -63,7 +63,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	slog.Info("starting server", "addr", ln.Addr().String(), "base_path", cfg.BasePath, "read_only", cfg.ReadOnly, "nats", redactedURLs(cfg.NatsServers))
+	slog.Info("starting server", "addr", ln.Addr().String(), "base_path", cfg.BasePath, "read_only", cfg.ReadOnly, "live_tap", cfg.LiveTap, "nats", redactedURLs(cfg.NatsServers))
 	if err := serve(ctx, srv, ln); err != nil {
 		slog.Error("server stopped with error", "err", err)
 	}
@@ -101,12 +101,16 @@ func newRouter(dist fs.FS, cfg config.Config, natsConnections *api.NatsConnectio
 	router := infrastructure.NewRouter(dist, infrastructure.UIConfig{
 		BasePath: cfg.BasePath,
 		ReadOnly: cfg.ReadOnly,
+		LiveTap:  cfg.LiveTap,
 	}, api.BasicAuth(cfg.DashboardUser, cfg.DashboardPassword))
 	middleware := api.NewConnectionMiddleware(natsConnections)
 
 	apiGroup := router.Group(cfg.BasePath+"/api", api.RejectCrossSite(), api.LimitBody(maxBodyBytes))
 	if cfg.ReadOnly {
 		apiGroup.Use(api.RefuseWrites())
+	}
+	if !cfg.LiveTap {
+		apiGroup.Use(api.RefuseLiveTap())
 	}
 	api.NewHealth(apiGroup).RegisterRoutes()
 

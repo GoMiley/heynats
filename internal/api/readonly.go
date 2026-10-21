@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,5 +25,23 @@ func RefuseWrites() gin.HandlerFunc {
 			"error":   "This dashboard is read-only",
 			"details": "Writes (publish, create, edit, delete, purge) are turned off on this server.",
 		})
+	}
+}
+
+// RefuseLiveTap turns live watching off: every subscribe stream (a subject, or a
+// stream's subject) answers 404 at once instead of hanging behind a proxy that
+// buffers streaming responses until its own timeout.
+func RefuseLiveTap() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// The matched route, not the URL: a KV key may contain "/subscribe/".
+		route := c.FullPath()
+		if strings.HasSuffix(route, "/subscribe") || strings.Contains(route, "/subscribe/") {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+				"error":   "Live watching is turned off",
+				"details": "This server cannot stream messages live; browse the stored messages instead.",
+			})
+			return
+		}
+		c.Next()
 	}
 }

@@ -36,6 +36,7 @@ func TestLoad(t *testing.T) {
 		DashboardUser:     "ops",
 		DashboardPassword: "pw",
 		ReadOnly:          true,
+		LiveTap:           true,
 	}
 	with := func(f func(*Config)) Config {
 		c := base
@@ -49,7 +50,7 @@ func TestLoad(t *testing.T) {
 		env  map[string]string
 		want Config
 	}{
-		{"defaults: read-only, no $SYS, no base path", nil, required(nil), base},
+		{"defaults: read-only, live tap on, no $SYS, no base path", nil, required(nil), base},
 		{"env", nil, required(map[string]string{
 			"HEYNATS_HTTP_ADDR":  ":8080",
 			"HEYNATS_LOG_LEVEL":  "debug",
@@ -61,6 +62,7 @@ func TestLoad(t *testing.T) {
 			c.HTTPAddr, c.LogLevel, c.LogFormat = ":8080", slog.LevelDebug, "json"
 			c.BasePath, c.ReadOnly, c.SysInfo = "/nats", false, true
 		})},
+		{"live tap off", nil, required(map[string]string{"LIVE_TAP": "false"}), with(func(c *Config) { c.LiveTap = false })},
 		{"base path without slashes", nil, required(map[string]string{"BASE_PATH": "nats"}), with(func(c *Config) { c.BasePath = "/nats" })},
 		{"flag beats env", []string{"-addr", ":9090"}, required(map[string]string{"HEYNATS_HTTP_ADDR": ":8080"}),
 			with(func(c *Config) { c.HTTPAddr = ":9090" })},
