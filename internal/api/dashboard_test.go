@@ -34,15 +34,17 @@ func newDashboard(t *testing.T, readOnly bool, liveTapOff ...bool) (http.Handler
 	if readOnly {
 		g.Use(RefuseWrites())
 	}
-	if len(liveTapOff) > 0 && liveTapOff[0] {
-		g.Use(RefuseLiveTap())
-	}
 	mw := NewConnectionMiddleware(store)
 	n := g.Group("/nats")
 	NewHeyNats(n, store, mw).RegisterRoutes()
-	NewStreamAPI(n, store, mw).RegisterRoutes()
+	noLive := len(liveTapOff) > 0 && liveTapOff[0]
+	streams := NewStreamAPI(n, store, mw)
+	streams.NoLiveTap = noLive
+	streams.RegisterRoutes()
 	NewPublishAPI(n, store, mw).RegisterRoutes()
-	NewSubscribeAPI(n, store, mw).RegisterRoutes()
+	if !noLive {
+		NewSubscribeAPI(n, store, mw).RegisterRoutes()
+	}
 	return r, srv.ClientURL()
 }
 
@@ -137,7 +139,7 @@ func TestLiveTapOffRefusesStreamsAtOnceButServesReads(t *testing.T) {
 		"/nats/api/nats/subscribe/messages/order.%3E",
 		"/nats/api/nats/streams/ORDER_EVENTS/subjects/order.%3E/subscribe",
 	} {
-		if w := call(r, http.MethodGet, path, true, ""); w.Code != http.StatusNotFound || !strings.Contains(w.Body.String(), "Live watching is turned off") {
+		if w := call(r, http.MethodGet, path, true, ""); w.Code != http.StatusNotFound {
 			t.Errorf("GET %s with live tap off = %d %s, want 404 at once", path, w.Code, w.Body.String())
 		}
 	}

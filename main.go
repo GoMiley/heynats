@@ -109,17 +109,19 @@ func newRouter(dist fs.FS, cfg config.Config, natsConnections *api.NatsConnectio
 	if cfg.ReadOnly {
 		apiGroup.Use(api.RefuseWrites())
 	}
-	if !cfg.LiveTap {
-		apiGroup.Use(api.RefuseLiveTap())
-	}
 	api.NewHealth(apiGroup).RegisterRoutes()
 
 	natsAPIGroup := apiGroup.Group("/nats")
 	api.NewHeyNats(natsAPIGroup, natsConnections, middleware).RegisterRoutes()
 	api.NewKVAPI(natsAPIGroup, natsConnections, middleware).RegisterRoutes()
-	api.NewStreamAPI(natsAPIGroup, natsConnections, middleware).RegisterRoutes()
+	streams := api.NewStreamAPI(natsAPIGroup, natsConnections, middleware)
+	streams.NoLiveTap = !cfg.LiveTap
+	streams.RegisterRoutes()
 	api.NewPublishAPI(natsAPIGroup, natsConnections, middleware).RegisterRoutes()
-	api.NewSubscribeAPI(natsAPIGroup, natsConnections, middleware).RegisterRoutes()
+	// Live watching streams responses; behind a buffering proxy it is not registered at all.
+	if cfg.LiveTap {
+		api.NewSubscribeAPI(natsAPIGroup, natsConnections, middleware).RegisterRoutes()
+	}
 	return router
 }
 

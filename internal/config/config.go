@@ -53,7 +53,7 @@ func Load(args []string, getenv func(string) string) (Config, error) {
 	format := fs.String("log-format", env("HEYNATS_LOG_FORMAT", "text"), "text or json")
 	basePath := fs.String("base-path", env("BASE_PATH", ""), "path prefix the dashboard is served under, e.g. /nats")
 	readOnly := fs.Bool("readonly", env("READONLY", "true") != "false", "refuse every write (READONLY=false to allow them)")
-	liveTap := fs.Bool("live-tap", env("LIVE_TAP", "true") != "false", "allow watching subjects live (LIVE_TAP=false behind a buffering proxy)")
+	liveTap := fs.Bool("live-tap", !isOff(env("LIVE_TAP", "true")), "allow watching subjects live (LIVE_TAP=false behind a buffering proxy)")
 	sysInfo := fs.Bool("sys-info", env("SYS_INFO", "false") == "true", "query the $SYS account for connection and user info")
 	if err := fs.Parse(args); err != nil {
 		return Config{}, err
@@ -113,4 +113,13 @@ func normalizeBasePath(p string) (string, error) {
 		return "", errors.New("BASE_PATH may contain only a plain path, e.g. /nats")
 	}
 	return "/" + p, nil
+}
+
+// isOff reads false / 0 / no / off (any case) as off.
+func isOff(v string) bool {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "false", "0", "no", "off":
+		return true
+	}
+	return false
 }

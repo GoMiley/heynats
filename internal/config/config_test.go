@@ -63,6 +63,8 @@ func TestLoad(t *testing.T) {
 			c.BasePath, c.ReadOnly, c.SysInfo = "/nats", false, true
 		})},
 		{"live tap off", nil, required(map[string]string{"LIVE_TAP": "false"}), with(func(c *Config) { c.LiveTap = false })},
+		{"live tap off as 0", nil, required(map[string]string{"LIVE_TAP": "0"}), with(func(c *Config) { c.LiveTap = false })},
+		{"live tap off as Off", nil, required(map[string]string{"LIVE_TAP": " Off "}), with(func(c *Config) { c.LiveTap = false })},
 		{"base path without slashes", nil, required(map[string]string{"BASE_PATH": "nats"}), with(func(c *Config) { c.BasePath = "/nats" })},
 		{"flag beats env", []string{"-addr", ":9090"}, required(map[string]string{"HEYNATS_HTTP_ADDR": ":8080"}),
 			with(func(c *Config) { c.HTTPAddr = ":9090" })},

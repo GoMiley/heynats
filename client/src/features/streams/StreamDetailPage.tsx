@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { EmptyState, LoadingState } from '@/components/PageStates';
 import { StatsCard } from '@/components/StatsCard';
 import { Button } from '@/components/ui/button';
-import { apiUrl } from '@/lib/config';
+import { apiUrl, serverConfig } from '@/lib/config';
 import { appendCapped, useEventSources } from '@/lib/useEventSources';
 import { formatBytes, formatNanosDuration } from '@/lib/utils';
 import { ConsumersTable } from './ConsumersTable';
@@ -313,6 +313,21 @@ export function StreamDetailPage() {
             )}
           </div>
 
+          {!serverConfig.liveTap && subjects.length > 0 && (
+            <div className="mb-4 shrink-0">
+              <h2 className="text-base font-semibold mb-3">Subjects</h2>
+              <div className="flex flex-wrap gap-2">
+                {subjects.map((subject) => (
+                  <code
+                    key={subject}
+                    className="rounded border bg-muted px-2 py-1 font-mono text-xs"
+                  >
+                    {subject}
+                  </code>
+                ))}
+              </div>
+            </div>
+          )}
           {serverConfig.liveTap && (
             <SubjectList
               subjects={subjects}
